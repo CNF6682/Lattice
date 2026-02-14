@@ -1,4 +1,4 @@
-# ORG Framework — Multi-Agent Organization for AI
+# Lattice — Multi-Agent Organization Framework
 
 A file-based organizational framework for managing multiple AI agents as a structured team. Built on [OpenClaw](https://github.com/openclaw/openclaw), but the principles apply to any multi-agent setup.
 
@@ -10,7 +10,7 @@ When you run multiple AI agents (coding assistants, researchers, reviewers, etc.
 - There's no quality gate — agents decide for themselves when "done" means done
 - Reusable work gets rebuilt from scratch every time
 
-ORG Framework solves this with:
+Lattice solves this with:
 - **File-based memory** — agents read/write Markdown files, not chat history
 - **Department structure** — clear ownership, handoffs, and boundaries
 - **Pipeline state machine** — 8-phase project lifecycle with quality gates
@@ -19,43 +19,64 @@ ORG Framework solves this with:
 
 ## Quick Start
 
+### 1. Get the framework
+
+```bash
+git clone https://github.com/<owner>/lattice.git /tmp/lattice
+cp -r /tmp/lattice/ORG <your-workspace>/ORG
 ```
-ORG/
-├── ORG_README.md              # Start here — org entrypoint
-├── TASKBOARD.md               # Current priorities
-├── MEMORY_POLICY.md           # What goes where (memory layering)
-├── PIPELINE_GUIDE.md          # Pipeline framework guide (all agents)
-├── ASSET_REGISTRY.md          # Reusable assets directory
-├── REUSE_REQUESTS.md          # Cross-department reuse requests
-├── DEPARTMENTS/
-│   └── <dept>/
-│       ├── CHARTER.md         # Mission, scope, boundaries
-│       ├── RUNBOOK.md         # How to operate
-│       ├── HANDOFF.md         # Current state / next / blockers
-│       └── STATE.json         # Machine-readable state
-├── PROJECTS/
-│   └── <project>/
-│       ├── STATUS.md          # Human-readable project status
-│       ├── DECISIONS.md       # Key decisions with rationale
-│       ├── PIPELINE_STATE.json # Pipeline state machine
-│       ├── PIPELINE_LOG.jsonl  # Append-only phase transition log
-│       ├── pipeline/           # Current run artifacts
-│       │   ├── CONSTITUTION.md
-│       │   ├── RESEARCH.md
-│       │   ├── SPECIFICATION.md
-│       │   ├── PLAN.md
-│       │   ├── TASKS.md
-│       │   ├── IMPL_STATUS.md
-│       │   ├── TEST_REPORT.md
-│       │   ├── REVIEW_REPORT.md
-│       │   └── GAP_ANALYSIS.md
-│       └── pipeline_archive/   # Historical run snapshots
-└── ANNOUNCEMENTS/              # Cross-department announcements
+
+### 2. Create your first department
+
+```bash
+cp -r ORG/DEPARTMENTS/example-dept ORG/DEPARTMENTS/my-team
 ```
+
+Edit `CHARTER.md` with your team's mission, `HANDOFF.md` with current state.
+
+### 3. Create your first project
+
+```bash
+cp -r ORG/PROJECTS/example-project ORG/PROJECTS/my-project
+```
+
+Edit `PIPELINE_STATE.json` — replace all `<your-xxx>` placeholders with your actual agent IDs and models.
+
+### 4. Set up the Pipeline Orchestrator
+
+Create a cron job that triggers every 30 minutes (see [DESIGN.md §5](ORG/PROJECTS/pipeline-framework/DESIGN.md) for the full template):
+
+```json
+{
+  "name": "pipeline:my-project:orchestrator",
+  "schedule": { "kind": "cron", "expr": "*/30 * * * *" },
+  "sessionTarget": "isolated",
+  "payload": {
+    "kind": "agentTurn",
+    "message": "You are the Pipeline Orchestrator. Read PIPELINE_STATE.json, advance the current phase by spawning sub-agents. Follow ORG/PROJECTS/pipeline-framework/templates/ORCHESTRATOR_PROMPT.template.md exactly.",
+    "model": "<your-cheap-model>"
+  }
+}
+```
+
+### 5. Wire Boot Sequence into your agents
+
+Add to `AGENTS.md` or system prompt:
+
+```
+Before any work: read ORG/TASKBOARD.md → your dept HANDOFF.md → ASSET_REGISTRY.md
+After work: update HANDOFF.md and project STATUS.md
+```
+
+### 6. Watch it run
+
+The orchestrator picks up the project, starts Phase 0 (Constitute), and drives through all 8 phases automatically. Each phase spawns a clean sub-agent session, produces a file artifact, and advances.
+
+---
 
 ## The Pipeline
 
-The core of the framework. Every project with clear deliverables goes through 8 phases:
+Every project with clear deliverables goes through 8 phases:
 
 ```
 Phase 0: Constitute  → Define principles, constraints, quality bar
@@ -98,7 +119,43 @@ Every agent, every session:
 1. **Model Escalation** — automatically retry with stronger models along a cost chain
 2. **Peer Consult** — parallel consultation with multiple models, then synthesize the best solution
 
-## Files Included
+## Deploy Guides
+
+Two guides depending on how you want to do it:
+
+| Guide | For | What it does |
+|-------|-----|-------------|
+| [Human Guide](docs/DEPLOY_GUIDE_HUMAN.md) | You (the human) | Copy-paste a prompt to your agent, it deploys everything |
+| [Agent Runbook](docs/DEPLOY_GUIDE_AGENT.md) | Your agent | 10-phase step-by-step self-deployment runbook |
+
+## Directory Structure
+
+```
+ORG/
+├── ORG_README.md              # Org entrypoint
+├── TASKBOARD.md               # Current priorities
+├── MEMORY_POLICY.md           # What goes where (memory layering)
+├── PIPELINE_GUIDE.md          # Pipeline framework guide (all agents)
+├── ASSET_REGISTRY.md          # Reusable assets directory
+├── REUSE_REQUESTS.md          # Cross-department reuse requests
+├── DEPARTMENTS/
+│   └── <dept>/
+│       ├── CHARTER.md         # Mission, scope, boundaries
+│       ├── RUNBOOK.md         # How to operate
+│       ├── HANDOFF.md         # Current state / next / blockers
+│       └── STATE.json         # Machine-readable state
+├── PROJECTS/
+│   └── <project>/
+│       ├── STATUS.md          # Human-readable project status
+│       ├── DECISIONS.md       # Key decisions with rationale
+│       ├── PIPELINE_STATE.json # Pipeline state machine
+│       ├── PIPELINE_LOG.jsonl  # Append-only phase transition log
+│       ├── pipeline/           # Current run artifacts
+│       └── pipeline_archive/   # Historical run snapshots
+└── ANNOUNCEMENTS/              # Cross-department announcements
+```
+
+## Files Reference
 
 | File | Description |
 |------|-------------|
@@ -106,32 +163,10 @@ Every agent, every session:
 | `ORG/MEMORY_POLICY.md` | Memory layering rules |
 | `ORG/PIPELINE_GUIDE.md` | Pipeline guide for all agents |
 | `ORG/ASSET_REGISTRY.md` | Reusable asset registry (template) |
-| `pipeline-framework/DESIGN.md` | Full pipeline design document |
-| `pipeline-framework/templates/` | All prompt templates |
-| `docs/DEPLOY_GUIDE_HUMAN.md` | Human guide — prompt to send your agent |
-| `docs/DEPLOY_GUIDE_AGENT.md` | Agent runbook — step-by-step self-deploy |
-| `examples/` | Example department + project setup |
-
-## Deploy to Your OpenClaw
-
-Two guides depending on how you want to do it:
-
-### Option A: Let your agent do it
-Send a prompt to your agent and it handles everything. See:
-→ **[Human Guide](docs/DEPLOY_GUIDE_HUMAN.md)** — copy-paste prompt + review checklist
-
-### Option B: Agent self-deploy
-Point your agent directly at the agent runbook. See:
-→ **[Agent Runbook](docs/DEPLOY_GUIDE_AGENT.md)** — 10-phase step-by-step deployment
-
-### Option C: Manual
-1. Copy the `ORG/` directory into your workspace
-2. Create departments under `DEPARTMENTS/` using the charter template
-3. Create projects under `PROJECTS/` — add `PIPELINE_STATE.json` for pipeline-driven ones
-4. Set up an Orchestrator cron job (see `pipeline-framework/DESIGN.md` §5)
-5. Configure agent roles and models in each project's `PIPELINE_STATE.json`
-
-The framework is agent-runtime agnostic. It works with OpenClaw, but the file-based protocol means any agent that can read/write files can participate.
+| `ORG/PROJECTS/pipeline-framework/DESIGN.md` | Full pipeline design document |
+| `ORG/PROJECTS/pipeline-framework/templates/` | All prompt templates (8 phases + orchestrator + consult) |
+| `docs/DEPLOY_GUIDE_HUMAN.md` | Human deployment guide |
+| `docs/DEPLOY_GUIDE_AGENT.md` | Agent deployment runbook |
 
 ## License
 
