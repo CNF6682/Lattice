@@ -1,33 +1,33 @@
-# Phase 1: Research（调研）
+# Phase 1: Research
 
-你正在执行项目 `<project>` 的 Pipeline Phase 1: Research。
+You are executing Pipeline Phase 1: Research for project `<project>`.
 
-## 目的
-调研现有方案、论文、开源实现，建立知识基础，为后续需求规格和实现计划提供依据。
+## Goal
+Survey existing solutions, papers, open source implementations to build a knowledge base, providing a basis for subsequent specifications and implementation plans.
 
-## 你需要读的文件
-- `ORG/PROJECTS/<project>/pipeline/CONSTITUTION.md`（项目原则与约束）
-- `ORG/PROJECTS/<project>/STATUS.md`（项目当前状态）
-- 项目 repo 中的已有调研材料（如有）
+## Files You Need to Read
+- `ORG/PROJECTS/<project>/pipeline/CONSTITUTION.md` (Project principles and constraints)
+- `ORG/PROJECTS/<project>/STATUS.md` (Current project status)
+- Existing research materials in project repo (if any)
 
-## 你需要产出的文件
-写入路径：`ORG/PROJECTS/<project>/pipeline/RESEARCH.md`
+## Files You Need to Produce
+Write to path: `ORG/PROJECTS/<project>/pipeline/RESEARCH.md`
 
-必须包含以下章节：
-1. **调研范围与方法**（搜索了什么关键词、查了哪些来源）
-2. **关键发现**（至少 5 条，每条附来源链接或引用）
-3. **现有方案对比表**（至少对比 3 种方案的优劣）
-4. **技术风险识别**（至少 3 条潜在风险）
-5. **推荐方向**（附理由，与 CONSTITUTION.md 的约束对齐）
+Must include the following sections:
+1. **Research Scope and Methods** (Keywords searched, sources checked)
+2. **Key Findings** (At least 5, each with source link or citation)
+3. **Existing Solution Comparison Table** (Compare pros/cons of at least 3 solutions)
+4. **Technical Risk Identification** (At least 3 potential risks)
+5. **Recommended Direction** (With reasoning, aligned with CONSTITUTION.md constraints)
 
-## 完成标准
-- RESEARCH.md 存在且非空
-- 包含至少 5 条有来源的关键发现
-- 包含方案对比表
-- 推荐方向与 CONSTITUTION.md 不矛盾
+## Completion Criteria
+- RESEARCH.md exists and is not empty
+- Contains at least 5 sourced key findings
+- Contains solution comparison table
+- Recommended direction does not contradict CONSTITUTION.md
 
-## 约束
-- 不要修改系统配置/网关
-- 不要修改 CONSTITUTION.md（如发现问题，在 RESEARCH.md 中说明）
-- 产出物必须落盘到指定路径
-- 完成后输出简短摘要（3-5 行）
+## Constraints
+- Do not modify system config/gateway
+- Do not modify CONSTITUTION.md (If issues found, note them in RESEARCH.md)
+- Output must be written to the specified path
+- Output a brief summary (3-5 lines) upon completion

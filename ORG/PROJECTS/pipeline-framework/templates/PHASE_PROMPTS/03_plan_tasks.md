@@ -1,48 +1,48 @@
-# Phase 3: Plan + Tasks（计划与任务分解）
+# Phase 3: Plan + Tasks
 
-你正在执行项目 `<project>` 的 Pipeline Phase 3: Plan + Tasks。
+You are executing Pipeline Phase 3: Plan + Tasks for project `<project>`.
 
-## 目的
-制定实现计划，将需求分解为可执行的原子任务。每个任务必须足够小，能在一个独立 session 中完成。
+## Goal
+Create an implementation plan and break down requirements into executable atomic tasks. Each task must be small enough to complete in a single independent session.
 
-## 你需要读的文件
-- `ORG/PROJECTS/<project>/pipeline/CONSTITUTION.md`（项目原则与约束）
-- `ORG/PROJECTS/<project>/pipeline/RESEARCH.md`（调研报告）
-- `ORG/PROJECTS/<project>/pipeline/SPECIFICATION.md`（需求规格）
+## Files You Need to Read
+- `ORG/PROJECTS/<project>/pipeline/CONSTITUTION.md` (Project principles and constraints)
+- `ORG/PROJECTS/<project>/pipeline/RESEARCH.md` (Research report)
+- `ORG/PROJECTS/<project>/pipeline/SPECIFICATION.md` (Requirements specification)
 
-## 你需要产出的文件
+## Files You Need to Produce
 
-### 文件 1：`ORG/PROJECTS/<project>/pipeline/PLAN.md`
-实现路线图，包含：
-1. **实现阶段划分**（按功能模块或依赖顺序分阶段）
-2. **阶段间依赖关系**（哪些可以并行，哪些必须串行）
-3. **技术方案选型**（基于 RESEARCH.md 的推荐，做最终技术决策）
-4. **风险缓解计划**（针对 RESEARCH.md 识别的风险）
+### File 1: `ORG/PROJECTS/<project>/pipeline/PLAN.md`
+Implementation roadmap, containing:
+1. **Implementation Phasing** (Phased by functional module or dependency order)
+2. **Inter-phase Dependencies** (Which can be parallel, which must be serial)
+3. **Technical Solution Selection** (Make final technical decisions based on RESEARCH.md recommendations)
+4. **Risk Mitigation Plan** (Addressing risks identified in RESEARCH.md)
 
-### 文件 2：`ORG/PROJECTS/<project>/pipeline/TASKS.md`
-原子任务列表，每个任务包含：
-- **任务 ID**（T-001, T-002...）
-- **描述**（一句话说清楚要做什么）
-- **依赖**（哪些任务必须先完成，用任务 ID 引用）
-- **对应需求**（引用 SPECIFICATION.md 中的 FR-xxx）
-- **预期产出文件**（代码文件路径或文档路径）
-- **测试方案**（如何验证这个任务完成了——命令、断言、或人工检查项）
-- **预估复杂度**（S: <30min / M: 30-60min / L: 60-120min）
+### File 2: `ORG/PROJECTS/<project>/pipeline/TASKS.md`
+Atomic task list, each task containing:
+- **Task ID** (T-001, T-002...)
+- **Description** (One sentence clearly stating what to do)
+- **Dependencies** (Which tasks must be completed first, reference by Task ID)
+- **Corresponding Requirement** (Reference FR-xxx in SPECIFICATION.md)
+- **Expected Output Files** (Code file paths or document paths)
+- **Test Plan** (How to verify this task is done—command, assertion, or manual check item)
+- **Estimated Complexity** (S: <30min / M: 30-60min / L: 60-120min)
 
-## 完成标准
-- PLAN.md + TASKS.md 都存在且非空
-- 每个 SPECIFICATION.md 中的功能需求至少被一个任务覆盖
-- 每个任务都有测试方案
-- 任务依赖关系无环
-- 复杂度 L 的任务不超过总数的 30%（如果超过，需要进一步拆分）
+## Completion Criteria
+- PLAN.md + TASKS.md both exist and are not empty
+- Every functional requirement in SPECIFICATION.md is covered by at least one task
+- Every task has a test plan
+- No cycles in task dependencies
+- Tasks with complexity L do not exceed 30% of total (if exceeded, need further breakdown)
 
-## 约束
-- 不要修改前置阶段的文件
-- 不要修改系统配置/网关
-- 产出物必须落盘到指定路径
-- 完成后输出简短摘要（3-5 行）
+## Constraints
+- Do not modify previous phase files
+- Do not modify system config/gateway
+- Output must be written to the specified path
+- Output a brief summary (3-5 lines) upon completion
 
-## 如果有 Review 回退意见
+## If Review Feedback Exists
 <review_feedback>
-无
+None
 </review_feedback>

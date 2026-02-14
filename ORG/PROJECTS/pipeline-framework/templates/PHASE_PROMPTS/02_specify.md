@@ -1,38 +1,38 @@
-# Phase 2: Specify（需求规格）
+# Phase 2: Specify
 
-你正在执行项目 `<project>` 的 Pipeline Phase 2: Specify。
+You are executing Pipeline Phase 2: Specify for project `<project>`.
 
-## 目的
-基于调研结果，定义精确的需求规格和验收标准。这是"做什么"的权威定义，后续实现和测试都以此为准。
+## Goal
+Define precise requirements and acceptance criteria based on research results. This is the authoritative definition of "what to do"; subsequent implementation and testing will strictly follow this.
 
-## 你需要读的文件
-- `ORG/PROJECTS/<project>/pipeline/CONSTITUTION.md`（项目原则与约束）
-- `ORG/PROJECTS/<project>/pipeline/RESEARCH.md`（调研报告）
+## Files You Need to Read
+- `ORG/PROJECTS/<project>/pipeline/CONSTITUTION.md` (Project principles and constraints)
+- `ORG/PROJECTS/<project>/pipeline/RESEARCH.md` (Research report)
 
-## 你需要产出的文件
-写入路径：`ORG/PROJECTS/<project>/pipeline/SPECIFICATION.md`
+## Files You Need to Produce
+Write to path: `ORG/PROJECTS/<project>/pipeline/SPECIFICATION.md`
 
-必须包含以下章节：
-1. **功能需求列表**（每条需求有唯一 ID，如 FR-001，且可测试）
-2. **非功能需求**（性能、可靠性、可维护性、兼容性）
-3. **接口定义**（输入/输出格式、API 契约、数据结构）
-4. **验收标准**（每个功能需求对应至少一条验收条件，格式：Given/When/Then 或等效描述）
-5. **排除项**（明确不做什么，与 CONSTITUTION.md 的边界约束对齐）
+Must include the following sections:
+1. **Functional Requirements List** (Each requirement has a unique ID, e.g., FR-001, and is testable)
+2. **Non-functional Requirements** (Performance, reliability, maintainability, compatibility)
+3. **Interface Definitions** (Input/output formats, API contracts, data structures)
+4. **Acceptance Criteria** (Each functional requirement corresponds to at least one acceptance condition, format: Given/When/Then or equivalent)
+5. **Exclusions** (Explicitly what NOT to do, aligned with CONSTITUTION.md boundary constraints)
 
-## 完成标准
-- SPECIFICATION.md 存在且非空
-- 每个功能需求都有对应的验收标准
-- 需求与 CONSTITUTION.md 的约束不矛盾
-- 需求与 RESEARCH.md 的推荐方向一致
+## Completion Criteria
+- SPECIFICATION.md exists and is not empty
+- Each functional requirement has corresponding acceptance criteria
+- Requirements do not contradict CONSTITUTION.md constraints
+- Requirements are consistent with RESEARCH.md recommended direction
 
-## 约束
-- 不要修改 CONSTITUTION.md 或 RESEARCH.md
-- 不要修改系统配置/网关
-- 产出物必须落盘到指定路径
-- 完成后输出简短摘要（3-5 行）
+## Constraints
+- Do not modify CONSTITUTION.md or RESEARCH.md
+- Do not modify system config/gateway
+- Output must be written to the specified path
+- Output a brief summary (3-5 lines) upon completion
 
-## 如果有 Review 回退意见
-（Orchestrator 会在此处注入 REVIEW_REPORT.md 中的反馈，如有）
+## If Review Feedback Exists
+(Orchestrator will inject feedback from REVIEW_REPORT.md here, if any)
 <review_feedback>
-无
+None
 </review_feedback>

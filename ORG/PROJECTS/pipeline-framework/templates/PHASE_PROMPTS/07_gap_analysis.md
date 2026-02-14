@@ -1,86 +1,86 @@
-# Phase 7: Gap Analysis（差距分析）
+# Phase 7: Gap Analysis
 
-你正在执行项目 `<project>` 的 Pipeline Phase 7: Gap Analysis。
+You are executing Pipeline Phase 7: Gap Analysis for project `<project>`.
 
-## 目的
-深度分析当前轮次成果与项目最终目标之间的差距，为下一轮 Pipeline 提供结构化的改进方向。
-Review 回答"这轮过不过"，你回答"下轮怎么更好"。
+## Goal
+Deeply analyze the gap between current run results and final project goals, providing structured improvement directions for the next Pipeline run.
+Review answers "Is this run good enough?", you answer "How to do better next run?".
 
-## 你需要读的文件（全部）
-- `ORG/PROJECTS/<project>/pipeline/CONSTITUTION.md`（项目原则与最终目标基准）
-- `ORG/PROJECTS/<project>/pipeline/RESEARCH.md`（调研报告）
-- `ORG/PROJECTS/<project>/pipeline/SPECIFICATION.md`（需求规格与验收标准）
-- `ORG/PROJECTS/<project>/pipeline/PLAN.md`（实现计划）
-- `ORG/PROJECTS/<project>/pipeline/TASKS.md`（任务列表）
-- `ORG/PROJECTS/<project>/pipeline/IMPL_STATUS.md`（实现状态）
-- `ORG/PROJECTS/<project>/pipeline/TEST_REPORT.md`（测试报告）
-- `ORG/PROJECTS/<project>/pipeline/REVIEW_REPORT.md`（审查报告——本轮评分与亮点）
-- 历史轮次归档 `ORG/PROJECTS/<project>/pipeline_archive/`（如有，用于跨轮次对比）
-- 项目 repo 中的代码文件（抽查关键模块）
+## Files You Need to Read (All)
+- `ORG/PROJECTS/<project>/pipeline/CONSTITUTION.md` (Project principles and final goal baseline)
+- `ORG/PROJECTS/<project>/pipeline/RESEARCH.md` (Research report)
+- `ORG/PROJECTS/<project>/pipeline/SPECIFICATION.md` (Requirements specification and acceptance criteria)
+- `ORG/PROJECTS/<project>/pipeline/PLAN.md` (Implementation plan)
+- `ORG/PROJECTS/<project>/pipeline/TASKS.md` (Task list)
+- `ORG/PROJECTS/<project>/pipeline/IMPL_STATUS.md` (Implementation status)
+- `ORG/PROJECTS/<project>/pipeline/TEST_REPORT.md` (Test report)
+- `ORG/PROJECTS/<project>/pipeline/REVIEW_REPORT.md` (Review report — scores and highlights)
+- Historical Run Archives `ORG/PROJECTS/<project>/pipeline_archive/` (If any, for cross-run comparison)
+- Code files in project repo (Spot check key modules)
 
-## 分析维度
+## Analysis Dimensions
 
-### 1. 量化完成度
-- 逐模块评估当前成果与 CONSTITUTION.md 最终目标的差距
-- 用百分比或评分量化每个模块的完成程度
-- 明确标注哪些目标已达成、哪些部分达成、哪些尚未开始
+### 1. Quantified Completion
+- Evaluate gap between current results and CONSTITUTION.md final goals per module
+- Quantify completion of each module (percentage or score)
+- Clearly mark which goals achieved, partially achieved, not started
 
-### 2. 工况/场景覆盖分析
-- 已覆盖哪些场景和工况
-- 缺失哪些边界场景、极端工况、异常路径
-- 哪些场景的覆盖深度不足（只有 happy path，缺少 edge case）
+### 2. Scenario Coverage Analysis
+- Which scenarios/conditions covered
+- Which boundary scenarios, extreme conditions, exception paths missing
+- Depth of coverage (only happy path vs edge cases)
 
-### 3. 图表与可视化充分性
-- 现有图表是否足以支撑结论
-- 建议新增哪些图表（附具体描述：X 轴、Y 轴、数据来源）
-- 现有图表的改进建议（如需要）
+### 3. Chart & Visualization Sufficiency
+- Are existing charts sufficient to support conclusions
+- Suggest new charts (Description: X-axis, Y-axis, Data Source)
+- Improvement suggestions for existing charts (if needed)
 
-### 4. 跨轮次进步追踪
-- 与上一轮（如有归档）的关键指标对比
-- 量化改进幅度（测试通过率、覆盖率、评分变化等）
-- 识别停滞或退步的领域
+### 4. Cross-Run Progress Tracking
+- Compare key metrics with previous run (if archived)
+- Quantify improvement magnitude (test pass rate, coverage, score changes)
+- Identify stagnant or regressing areas
 
-### 5. 下轮改进建议
-按优先级（高/中/低）列出具体可执行的改进项，每项包含：
-- 改进内容描述
-- 理由（为什么重要）
-- 预期收益（量化或定性）
-- 建议在哪个阶段重点关注
+### 5. Next Run Improvement Suggestions
+List specific executable improvement items by priority (High/Medium/Low), each containing:
+- Improvement Content Description
+- Reason (Why important)
+- Expected Benefit (Quantified or Qualitative)
+- Suggested Phase to Focus On
 
-### 6. 质量标准更新建议
-- 是否需要调整验收阈值
-- 是否需要新增质量维度
-- CONSTITUTION.md 是否需要更新（如项目方向微调）
+### 6. Quality Standard Update Suggestions
+- Whether to adjust acceptance thresholds
+- Whether to add new quality dimensions
+- Whether CONSTITUTION.md needs update (e.g., project direction tweak)
 
-## 你需要产出的文件
-写入路径：`ORG/PROJECTS/<project>/pipeline/GAP_ANALYSIS.md`
+## Files You Need to Produce
+Write to path: `ORG/PROJECTS/<project>/pipeline/GAP_ANALYSIS.md`
 
-必须包含以下章节：
-1. **分析摘要**（一段话总结本轮差距全貌）
-2. **量化完成度表**
+Must include the following sections:
+1. **Analysis Summary** (One paragraph summary of the gap landscape)
+2. **Quantified Completion Table**
    ```
-   | 模块/目标 | 完成度 | 说明 |
-   |-----------|--------|------|
-   | ...       | XX%    | ...  |
+   | Module/Goal | Completion | Note |
+   |-------------|------------|------|
+   | ...         | XX%        | ...  |
    ```
-3. **场景覆盖矩阵**（已覆盖 ✅ / 部分覆盖 ⚠️ / 未覆盖 ❌）
-4. **跨轮次对比**（如有历史数据）
-5. **改进建议清单**（至少 3 条，按优先级排序）
+3. **Scenario Coverage Matrix** (Covered ✅ / Partial ⚠️ / Not Covered ❌)
+4. **Cross-Run Comparison** (If historical data exists)
+5. **Improvement Suggestions List** (At least 3 items, sorted by priority)
    ```
-   | 优先级 | 改进项 | 理由 | 预期收益 | 关注阶段 |
-   |--------|--------|------|----------|----------|
-   | 高     | ...    | ...  | ...      | ...      |
+   | Priority | Item | Reason | Expected Benefit | Focus Phase |
+   |----------|------|--------|------------------|-------------|
+   | High     | ...  | ...    | ...              | ...         |
    ```
-6. **质量标准更新建议**（如无则写"当前标准适用，无需调整"）
+6. **Quality Standard Update Suggestions** (If none, write "Current standards applicable, no adjustment needed")
 
-## 完成标准
-- GAP_ANALYSIS.md 存在且非空
-- 包含量化完成度评估
-- 包含至少 3 条分优先级的改进建议
-- 每条建议附理由和预期收益
+## Completion Criteria
+- GAP_ANALYSIS.md exists and is not empty
+- Contains quantified completion assessment
+- Contains at least 3 prioritized improvement suggestions
+- Each suggestion attached with reason and expected benefit
 
-## 约束
-- 不要修改任何 pipeline 文件或代码文件（你是分析者，不是修改者）
-- 不要修改系统配置/网关
-- 假设 Review 已 PASS——你的任务不是重新审判，而是前瞻性分析
-- 完成后输出简短摘要（3-5 行）
+## Constraints
+- Do not modify any pipeline files or code files (You are an analyst, not a modifier)
+- Do not modify system config/gateway
+- Assume Review has PASSED — your task is not to re-judge, but forward-looking analysis
+- Output a brief summary (3-5 lines) upon completion

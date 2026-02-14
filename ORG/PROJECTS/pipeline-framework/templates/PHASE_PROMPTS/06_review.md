@@ -1,80 +1,80 @@
-# Phase 6: Review（审查）
+# Phase 6: Review
 
-你正在执行项目 `<project>` 的 Pipeline Phase 6: Review。
+You are executing Pipeline Phase 6: Review for project `<project>`.
 
-## 目的
-对整个 Pipeline 本轮的产出进行质量审查和目标达成分析。你的判定（PASS/FAIL）决定 Pipeline 是归档完成还是回退重做。
+## Goal
+Perform quality review and goal achievement analysis on the entire Pipeline run output. Your verdict (PASS/FAIL) determines whether the Pipeline archives and completes, or rolls back for rework.
 
-## 你需要读的文件（全部）
-- `ORG/PROJECTS/<project>/pipeline/CONSTITUTION.md`（项目原则与质量标准）
-- `ORG/PROJECTS/<project>/pipeline/RESEARCH.md`（调研报告）
-- `ORG/PROJECTS/<project>/pipeline/SPECIFICATION.md`（需求规格与验收标准）
-- `ORG/PROJECTS/<project>/pipeline/PLAN.md`（实现计划）
-- `ORG/PROJECTS/<project>/pipeline/TASKS.md`（任务列表）
-- `ORG/PROJECTS/<project>/pipeline/IMPL_STATUS.md`（实现状态）
-- `ORG/PROJECTS/<project>/pipeline/TEST_REPORT.md`（测试报告）
-- 项目 repo 中的代码文件（抽查关键模块）
+## Files You Need to Read (All)
+- `ORG/PROJECTS/<project>/pipeline/CONSTITUTION.md` (Project principles and quality standards)
+- `ORG/PROJECTS/<project>/pipeline/RESEARCH.md` (Research report)
+- `ORG/PROJECTS/<project>/pipeline/SPECIFICATION.md` (Requirements specification and acceptance criteria)
+- `ORG/PROJECTS/<project>/pipeline/PLAN.md` (Implementation plan)
+- `ORG/PROJECTS/<project>/pipeline/TASKS.md` (Task list)
+- `ORG/PROJECTS/<project>/pipeline/IMPL_STATUS.md` (Implementation status)
+- `ORG/PROJECTS/<project>/pipeline/TEST_REPORT.md` (Test report)
+- Code files in project repo (Spot check key modules)
 
-## 审查维度
+## Review Dimensions
 
-### 1. 规格符合度（权重 30%）
-- 代码是否满足 SPECIFICATION.md 的所有功能需求？
-- 非功能需求是否满足？
-- 接口定义是否一致？
+### 1. Spec Compliance (Weight 30%)
+- Does code meet all functional requirements in SPECIFICATION.md?
+- Are non-functional requirements met?
+- Are interface definitions consistent?
 
-### 2. 质量标准（权重 25%）
-- 是否满足 CONSTITUTION.md 定义的质量标准？
-- 代码风格、命名、结构是否合理？
-- 是否有明显的 bug、安全漏洞、性能问题？
+### 2. Quality Standards (Weight 25%)
+- Are quality standards defined in CONSTITUTION.md met?
+- Are code style, naming, structure reasonable?
+- Are there obvious bugs, security vulnerabilities, performance issues?
 
-### 3. 测试充分性（权重 20%）
-- TEST_REPORT.md 是否覆盖了所有关键路径？
-- 验收测试通过率是否达标？
-- 失败用例的根因分析是否合理？
+### 3. Test Sufficiency (Weight 20%)
+- Does TEST_REPORT.md cover all critical paths?
+- Is acceptance test pass rate up to standard?
+- Is root cause analysis for failure cases reasonable?
 
-### 4. 可维护性（权重 15%）
-- 代码注释和文档是否足够？
-- 模块划分是否清晰？
-- 后续迭代是否容易扩展？
+### 4. Maintainability (Weight 15%)
+- Are comments and documentation sufficient?
+- Is module division clear?
+- Is future iteration easy to extend?
 
-### 5. 目标达成（权重 10%）
-- 整体是否达到了 CONSTITUTION.md 定义的项目目标？
-- 是否有遗漏的关键功能？
+### 5. Goal Achievement (Weight 10%)
+- Is the project goal defined in CONSTITUTION.md achieved overall?
+- Are key functions missing?
 
-## 你需要产出的文件
-写入路径：`ORG/PROJECTS/<project>/pipeline/REVIEW_REPORT.md`
+## Files You Need to Produce
+Write to path: `ORG/PROJECTS/<project>/pipeline/REVIEW_REPORT.md`
 
-必须包含以下章节：
-1. **审查摘要**（一段话总结）
-2. **各维度评分**
+Must include the following sections:
+1. **Review Summary** (One paragraph summary)
+2. **Scores by Dimension**
    ```
-   规格符合度:  X/5
-   质量标准:    X/5
-   测试充分性:  X/5
-   可维护性:    X/5
-   目标达成:    X/5
-   加权总分:    X.X/5.0
+   Spec Compliance:  X/5
+   Quality Standards:    X/5
+   Test Sufficiency:  X/5
+   Maintainability:    X/5
+   Goal Achievement:    X/5
+   Weighted Total:    X.X/5.0
    ```
-3. **总体判定**: `PASS` 或 `FAIL`
-   - PASS 条件：加权总分 >= 3.5 且无任何维度 <= 2
-   - 否则 FAIL
-4. **如果 PASS**：
-   - 本轮亮点（2-3 条）
-   - 下一轮建议改进方向
-5. **如果 FAIL**：
-   - 具体问题列表（每条附所在文件/行号）
-   - 建议回退到哪个阶段（constitute/research/specify/plan/implement/test）
-   - 回退理由
-   - 给回退阶段的具体修改建议
+3. **Overall Verdict**: `PASS` or `FAIL`
+   - PASS Condition: Weighted Total >= 3.5 AND No Dimension <= 2
+   - Otherwise FAIL
+4. **If PASS**:
+   - Highlights of this run (2-3 items)
+   - Improvement directions for next run
+5. **If FAIL**:
+   - Specific Issue List (Each with file/line number)
+   - Suggested Rollback Phase (constitute/research/specify/plan/implement/test)
+   - Reason for Rollback
+   - Specific Modification Suggestions for the rollback phase
 
-## 完成标准
-- REVIEW_REPORT.md 存在且非空
-- 包含 5 个维度的评分
-- 包含明确的 PASS/FAIL 判定
-- 如果 FAIL，包含回退目标和具体修改建议
+## Completion Criteria
+- REVIEW_REPORT.md exists and is not empty
+- Contains scores for 5 dimensions
+- Contains clear PASS/FAIL verdict
+- If FAIL, contains rollback target and specific modification suggestions
 
-## 约束
-- 不要修改任何 pipeline 文件或代码文件（你是审查者，不是修改者）
-- 不要修改系统配置/网关
-- 保持客观公正，不要因为"差一点就通过"而放水
-- 完成后输出简短摘要（3-5 行）
+## Constraints
+- Do not modify any pipeline files or code files (You are a reviewer, not a modifier)
+- Do not modify system config/gateway
+- Remain objective and fair, do not "let it pass" just because it's "almost there"
+- Output a brief summary (3-5 lines) upon completion

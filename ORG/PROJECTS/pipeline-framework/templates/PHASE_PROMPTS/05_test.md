@@ -1,69 +1,69 @@
-# Phase 5: Test（测试）
+# Phase 5: Test
 
-你正在执行项目 `<project>` 的 Pipeline Phase 5: Test。
+You are executing Pipeline Phase 5: Test for project `<project>`.
 
-## 目的
-对 Phase 4 的实现进行分级测试，生成测试报告。测试的权威标准是 SPECIFICATION.md 中的验收条件。
+## Goal
+Perform tiered testing on Phase 4 implementation and generate a test report. The authoritative standard for testing is the acceptance criteria in SPECIFICATION.md.
 
-## 你需要读的文件
-- `ORG/PROJECTS/<project>/pipeline/CONSTITUTION.md`（质量标准）
-- `ORG/PROJECTS/<project>/pipeline/SPECIFICATION.md`（验收标准——逐条验证）
-- `ORG/PROJECTS/<project>/pipeline/TASKS.md`（每个任务的测试方案）
-- `ORG/PROJECTS/<project>/pipeline/IMPL_STATUS.md`（实现状态——哪些任务 done、产出路径）
-- 项目 repo 中的代码文件
+## Files You Need to Read
+- `ORG/PROJECTS/<project>/pipeline/CONSTITUTION.md` (Quality standards)
+- `ORG/PROJECTS/<project>/pipeline/SPECIFICATION.md` (Acceptance criteria — verify item by item)
+- `ORG/PROJECTS/<project>/pipeline/TASKS.md` (Test plan for each task)
+- `ORG/PROJECTS/<project>/pipeline/IMPL_STATUS.md` (Implementation status — which tasks are done, output paths)
+- Code files in project repo
 
-## 测试分级
+## Testing Tiers
 
-### Level 1: 单元测试
-- 逐任务执行 TASKS.md 中定义的测试方案
-- 记录每个任务的 pass/fail
+### Level 1: Unit Test
+- Execute test plan defined in TASKS.md for each task
+- Record pass/fail for each task
 
-### Level 2: 集成测试
-- 测试跨任务的接口和数据流
-- 验证模块间的交互是否正确
+### Level 2: Integration Test
+- Test interfaces and data flow across tasks
+- Verify correct interaction between modules
 
-### Level 3: 验收测试
-- 逐条对照 SPECIFICATION.md 的验收标准
-- 对每个 FR-xxx 的验收条件执行验证
-- 记录 pass/fail/skip（skip 需说明原因）
+### Level 3: Acceptance Test
+- Verify against SPECIFICATION.md acceptance criteria item by item
+- Execute verification for each FR-xxx
+- Record pass/fail/skip (must explain reason for skip)
 
-## 你需要产出的文件
-写入路径：`ORG/PROJECTS/<project>/pipeline/TEST_REPORT.md`
+## Files You Need to Produce
+Write to path: `ORG/PROJECTS/<project>/pipeline/TEST_REPORT.md`
 
-必须包含以下章节：
-1. **测试执行摘要**
-   - 总数 / 通过 / 失败 / 跳过
-   - 按级别统计（单元 / 集成 / 验收）
-2. **单元测试详情**
-   - 每个任务 ID + 测试命令 + 结果 + 输出摘要
-3. **集成测试详情**
-   - 测试场景 + 结果 + 问题描述（如有）
-4. **验收测试详情**
-   - 每个 FR-xxx + 验收条件 + pass/fail/skip + 证据（命令输出或截图路径）
-5. **失败分析**
-   - 每个失败用例的根因分析和修复建议
-6. **测试覆盖率**（如适用）
-   - 代码覆盖率数据或估算
+Must include the following sections:
+1. **Test Execution Summary**
+   - Total / Pass / Fail / Skip
+   - Statistics by Level (Unit / Integration / Acceptance)
+2. **Unit Test Details**
+   - Each Task ID + Test Command + Result + Output Summary
+3. **Integration Test Details**
+   - Test Scenario + Result + Issue Description (if any)
+4. **Acceptance Test Details**
+   - Each FR-xxx + Acceptance Condition + pass/fail/skip + Evidence (Command output or screenshot path)
+5. **Failure Analysis**
+   - Root cause analysis and fix suggestions for each failure case
+6. **Test Coverage** (If applicable)
+   - Code coverage data or estimation
 
-## 完成标准
-- TEST_REPORT.md 存在且非空
-- 所有 TASKS.md 中的任务都有单元测试结果
-- 所有 SPECIFICATION.md 中的 FR-xxx 都有验收测试结果
-- 验收测试通过率 >= 阈值（默认 80%，以 CONSTITUTION.md 中的质量标准为准）
+## Completion Criteria
+- TEST_REPORT.md exists and is not empty
+- All tasks in TASKS.md have unit test results
+- All FR-xxx in SPECIFICATION.md have acceptance test results
+- Acceptance test pass rate >= Threshold (Default 80%, subject to CONSTITUTION.md quality standards)
 
-## 如果你卡住了
-当测试环境出现无法解决的问题（依赖安装失败、环境不兼容等），或某个测试反复失败且你无法判断是代码 bug 还是测试方案问题时，**不要继续死磕**，在 TEST_REPORT.md 中标记：
+## If You Get Stuck
+When encountering unresolvable test environment issues (dependency failure, environment incompatibility, etc.), or a test fails repeatedly and you cannot determine if it's a code bug or test plan issue, **DO NOT PERSIST BLINDLY**. Mark in TEST_REPORT.md:
 
 ```
 ### Stuck Items
-- 测试项: <FR-xxx 或 T-xxx> | 错误摘要: <一句话> | 已尝试: <方案列表> | 相关文件: <路径>
+- Test Item: <FR-xxx or T-xxx> | Error Summary: <One sentence> | Tried: <List of tried approaches> | Relevant Files: <Path>
 ```
 
-报告后立即结束任务。Orchestrator 会自动触发求助机制。
+Terminate task immediately after reporting. Orchestrator will automatically trigger assistance mechanism.
 
-## 约束
-- 不要修改代码文件（测试阶段只读代码、只运行测试）
-- 不要修改前置阶段的 pipeline 文件
-- 不要修改系统配置/网关
-- 如果测试环境有问题导致无法执行某些测试，标记为 skip 并说明原因
-- 完成后输出简短摘要（3-5 行）
+## Constraints
+- Do not modify code files (Read-only during test phase, only run tests)
+- Do not modify previous phase pipeline files
+- Do not modify system config/gateway
+- If environment issues prevent execution of certain tests, mark as skip and explain reason
+- Output a brief summary (3-5 lines) upon completion

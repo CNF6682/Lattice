@@ -1,29 +1,29 @@
-# Pipeline Orchestrator 框架设计文档
+# Pipeline Orchestrator Framework Design Document
 
 > Author: Architect | Status: APPROVED
 
 ---
 
-## 0. 背景与动机
+## 0. Background & Motivation
 
-### 现状问题
-1. **扁平 cron 驱动**：每个 cron job = 一个 agent + 一次 isolated session，把调研/设计/编码/测试/review 全塞进一个 prompt，质量不可控。
-2. **无阶段门控**：没有"上一步没做好就不能进下一步"的机制，agent 自行决定做多少。
-3. **无多角色协作**：Chat bots cannot trigger each other (bot-to-bot messages blocked), so multi-role collaboration cannot happen at the messaging layer。
-4. **上下文污染**：单次 session 内对话越长，上下文越脏，后期输出质量下降。
+### Current Issues
+1. **Flat Cron Driver**: Each cron job = one agent + one isolated session. Cramming research/design/coding/testing/review into a single prompt leads to uncontrollable quality.
+2. **No Phase Gates**: There is no mechanism to prevent proceeding to the next step if the previous one isn't done well. Agents decide for themselves how much to do.
+3. **No Multi-Role Collaboration**: Chat bots cannot trigger each other (bot-to-bot messages blocked), so multi-role collaboration cannot happen at the messaging layer.
+4. **Context Pollution**: The longer the conversation in a single session, the "dirtier" the context gets, degrading later output quality.
 
-### 设计目标
-- 引入阶段状态机（Pipeline），每个阶段有明确的准入条件、产出物、退出条件
-- 每个阶段在干净的 isolated session 中执行，通过文件（而非对话）传递上下文
-- 多角色协作发生在 OpenClaw 内部（sessions_spawn），messaging platforms serve only as result announcement panels
-- 完全兼容现有 ORG 章程（Boot/Closeout/落盘/变更控制）
-- 可复用：任何项目都能套用同一套 Pipeline 框架
+### Design Goals
+- Introduce a Phase State Machine (Pipeline) where each phase has explicit entry conditions, artifacts, and exit conditions.
+- Execute each phase in a clean isolated session, passing context via files (not chat).
+- Multi-role collaboration happens inside OpenClaw (sessions_spawn), while messaging platforms serve only as result announcement panels.
+- Fully compatible with existing ORG Charter (Boot/Closeout/Persistence/Change Control).
+- Reusable: Any project can apply the same Pipeline framework.
 
 ---
 
-## 1. 核心概念
+## 1. Core Concepts
 
-### 1.1 Pipeline = 阶段状态机
+### 1.1 Pipeline = Phase State Machine
 
 ```
 ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
@@ -32,67 +32,67 @@
 └──────────┘    └──────────┘    └──────────┘    └──────────┘    └──────────┘    └──────────┘    └──────────┘    └──────────┘
       │                                                               │                              │                │
       │                                                               │         ┌───────────┐        │                │
-      │                                                               │◀────────│ 回退重做   │◀───────│                │
+      │                                                               │◀────────│  Rollback  │◀───────│                │
       │                                                               │         └───────────┘        │                │
       ▼                                                                                              ▼                ▼
   CONSTITUTION.md                                                                              REVIEW_REPORT.md  GAP_ANALYSIS.md
-                                                                                               → pass: 进入 Phase 7
-                                                                                               → fail: 回退到指定阶段
+                                                                                               → pass: Enter Phase 7
+                                                                                               → fail: Rollback to specific phase
 ```
 
-### 1.2 Orchestrator = 调度 Agent
+### 1.2 Orchestrator = Scheduling Agent
 
-Orchestrator 不是 OpenClaw 内置工具，而是一个 agent 角色，由 cron 定时触发。它的职责：
+The Orchestrator is not a built-in OpenClaw tool, but an agent role triggered periodically by cron. Its responsibilities:
 
-1. 读 `PIPELINE_STATE.json` → 判断当前阶段
-2. 检查当前阶段的准入条件是否满足
-3. 用 `sessions_spawn` 启动对应角色的子 agent 执行当前阶段
-4. 子 agent 完成后，检查产出物是否满足退出条件
-5. 满足 → 推进到下一阶段；不满足 → 标记阻塞，等下次触发重试
-6. 将阶段转换事件写入 `PIPELINE_LOG.jsonl`
-7. broadcast progress summary to notification channel
+1. Read `PIPELINE_STATE.json` → Determine current phase.
+2. Check if entry conditions for the current phase are met.
+3. Use `sessions_spawn` to launch a sub-agent of the corresponding role to execute the current phase.
+4. After the sub-agent finishes, check if the artifact meets exit conditions.
+5. Met → Advance to next phase; Not met → Mark as blocker, wait for next trigger to retry.
+6. Write phase transition events to `PIPELINE_LOG.jsonl`.
+7. Broadcast progress summary to notification channel.
 
-### 1.3 角色分工
+### 1.3 Role Assignment
 
-| 阶段 | 推荐角色 (agentId) | 推荐模型 | 职责 |
-|------|-------------------|---------|------|
-| Phase 0: Constitute | <your-architect-agent> | opus | 定义项目原则、约束、技术边界 |
-| Phase 1: Research | <your-researcher-agent> | gpro | 调研现有方案、论文、开源实现/或者是进一步调研/背景分析 |
-| Phase 2: Specify | <your-designer-agent> | opus | 需求规格、接口定义、验收标准 |
-| Phase 3: Plan+Tasks | <your-architect-agent> | opus | 实现计划、任务分解、测试方案设计 |
-| Phase 4: Implement | <your-coder-agent> | codex/glm/sonnet | 逐任务编码（每个任务一个干净 session） |
-| Phase 5: Test | <your-coder-agent> | codex | 执行测试、生成测试报告 |
-| Phase 6: Review | <your-reviewer-agent> | opus | 质量审查、目标达成分析、通过/回退决策 |
-| Phase 7: Gap Analysis | <your-researcher-agent> | gpro | 差距分析、跨轮次追踪、下轮改进建议 |
+| Phase | Recommended Role (agentId) | Recommended Model | Responsibilities |
+|---|---|---|---|
+| Phase 0: Constitute | <your-architect-agent> | opus | Define project principles, constraints, technical boundaries |
+| Phase 1: Research | <your-researcher-agent> | gpro | Survey existing solutions, papers, open source implementations / or further research/background analysis |
+| Phase 2: Specify | <your-designer-agent> | opus | Requirements specification, interface definition, acceptance criteria |
+| Phase 3: Plan+Tasks | <your-architect-agent> | opus | Implementation plan, task breakdown, test plan design |
+| Phase 4: Implement | <your-coder-agent> | codex/glm/sonnet | Task-by-task coding (one clean session per task) |
+| Phase 5: Test | <your-coder-agent> | codex | Execute tests, generate test reports |
+| Phase 6: Review | <your-reviewer-agent> | opus | Quality review, goal achievement analysis, pass/rollback decision |
+| Phase 7: Gap Analysis | <your-researcher-agent> | gpro | Gap analysis, cross-run tracking, improvement suggestions for next run |
 
-> 注：角色和模型可按项目需求调整，以上为默认推荐。
+> Note: Roles and models can be adjusted per project needs. The above are default recommendations.
 
 ---
 
-## 2. 文件结构
+## 2. File Structure
 
-### 2.1 项目级 Pipeline 目录
+### 2.1 Project-Level Pipeline Directory
 
-每个使用 Pipeline 的项目，在 `ORG/PROJECTS/<project>/` 下新增：
+For every project using Pipeline, add the following under `ORG/PROJECTS/<project>/`:
 
 ```
 ORG/PROJECTS/<project>/
-├── STATUS.md              # 已有 — 人类可读的项目状态
-├── DECISIONS.md           # 已有 — 关键决策记录
-├── RUNBOOK.md             # 已有 — 运行手册
-├── PIPELINE_STATE.json    # 新增 — 阶段状态机（机器读写）
-├── PIPELINE_LOG.jsonl     # 新增 — 全历史阶段转换日志（append-only，跨轮次）
-├── pipeline/              # 新增 — 当前轮次产出物（固定路径，Orchestrator 直接读写）
-│   ├── CONSTITUTION.md    # Phase 0 产出
-│   ├── RESEARCH.md        # Phase 1 产出
-│   ├── SPECIFICATION.md   # Phase 2 产出
-│   ├── PLAN.md            # Phase 3 产出
-│   ├── TASKS.md           # Phase 3 产出
-│   ├── IMPL_STATUS.md     # Phase 4 进度追踪
-│   ├── TEST_REPORT.md     # Phase 5 产出
-│   └── REVIEW_REPORT.md   # Phase 6 产出
-└── pipeline_archive/      # 新增 — 历史轮次归档（每轮 Review PASS 后自动归档）
-    ├── run-001/           # 第 1 轮完整产出快照
+├── STATUS.md              # Existing — Human-readable project status
+├── DECISIONS.md           # Existing — Key decisions record
+├── RUNBOOK.md             # Existing — Operation manual
+├── PIPELINE_STATE.json    # New — Phase state machine (machine read/write)
+├── PIPELINE_LOG.jsonl     # New — Full history phase transition log (append-only, cross-run)
+├── pipeline/              # New — Current run artifacts (fixed path, Orchestrator reads/writes directly)
+│   ├── CONSTITUTION.md    # Phase 0 Artifact
+│   ├── RESEARCH.md        # Phase 1 Artifact
+│   ├── SPECIFICATION.md   # Phase 2 Artifact
+│   ├── PLAN.md            # Phase 3 Artifact
+│   ├── TASKS.md           # Phase 3 Artifact
+│   ├── IMPL_STATUS.md     # Phase 4 Progress tracking
+│   ├── TEST_REPORT.md     # Phase 5 Artifact
+│   └── REVIEW_REPORT.md   # Phase 6 Artifact
+└── pipeline_archive/      # New — Historical run archives (auto-archived after each Review PASS)
+    ├── run-001/           # Snapshot of 1st full run artifacts
     │   ├── CONSTITUTION.md
     │   ├── RESEARCH.md
     │   ├── SPECIFICATION.md
@@ -105,13 +105,13 @@ ORG/PROJECTS/<project>/
     └── ...
 ```
 
-**归档机制**：
-- `pipeline/` 始终代表"当前正在进行的这一轮"，路径固定，Orchestrator 和子 agent 无需关心轮次编号
-- 每轮 Review PASS 后，Orchestrator 自动执行归档：
-  1. 复制 `pipeline/*` → `pipeline_archive/run-{N}/`
-  2. 在 PIPELINE_STATE.json 中 `runNumber++`，所有阶段重置为 pending
-  3. 在 PIPELINE_LOG.jsonl 追加 `{"event": "run_archived", "run": N}`
-- PIPELINE_LOG.jsonl 保持全局 append-only 不按轮次拆分，便于跨轮次趋势分析
+**Archival Mechanism**:
+- `pipeline/` always represents "the current ongoing run". The path is fixed, so Orchestrator and sub-agents don't need to care about run numbers.
+- After each Review PASS, Orchestrator automatically executes archival:
+  1. Copy `pipeline/*` → `pipeline_archive/run-{N}/`
+  2. Increment `runNumber` in PIPELINE_STATE.json, reset all phases to pending.
+  3. Append `{"event": "run_archived", "run": N}` to PIPELINE_LOG.jsonl.
+- PIPELINE_LOG.jsonl remains globally append-only and is not split by run, facilitating cross-run trend analysis.
 
 ### 2.2 PIPELINE_STATE.json Schema
 
@@ -181,247 +181,247 @@ ORG/PROJECTS/<project>/
 }
 ```
 
-### 2.3 PIPELINE_LOG.jsonl 格式
+### 2.3 PIPELINE_LOG.jsonl Format
 
-每行一条事件，append-only：
+One event per line, append-only:
 
 ```jsonl
-{"ts":"2026-02-13T10:00:00+08:00","event":"phase_complete","phase":"constitute","agent":"<your-architect-agent>","duration_s":120,"artifact":"pipeline/CONSTITUTION.md"}
-{"ts":"2026-02-13T11:00:00+08:00","event":"phase_start","phase":"research","agent":"<your-researcher-agent>"}
-{"ts":"2026-02-13T11:15:00+08:00","event":"phase_complete","phase":"research","agent":"<your-researcher-agent>","duration_s":900,"artifact":"pipeline/RESEARCH.md"}
-{"ts":"2026-02-13T12:00:00+08:00","event":"review_reject","phase":"review","agent":"<your-reviewer-agent>","reason":"测试覆盖率不足","rollbackTo":"implement"}
+{"ts":"2026-02-13T10:00:00+08:00\",\"event\":\"phase_complete\",\"phase\":\"constitute\",\"agent\":\"<your-architect-agent>\",\"duration_s\":120,\"artifact\":\"pipeline/CONSTITUTION.md\"}
+{"ts":"2026-02-13T11:00:00+08:00\",\"event\":\"phase_start\",\"phase\":\"research\",\"agent\":\"<your-researcher-agent>\"}
+{"ts":"2026-02-13T11:15:00+08:00\",\"event\":\"phase_complete\",\"phase\":\"research\",\"agent\":\"<your-researcher-agent>\",\"duration_s\":900,\"artifact\":\"pipeline/RESEARCH.md\"}
+{"ts":"2026-02-13T12:00:00+08:00\",\"event\":\"review_reject\",\"phase\":\"review\",\"agent\":\"<your-reviewer-agent>\",\"reason\":\"Insufficient test coverage\",\"rollbackTo\":\"implement\"}
 ```
 
 ---
 
-## 3. 阶段详细定义
+## 3. Phase Details
 
-### Phase 0: Constitute（立宪）
+### Phase 0: Constitute
 
-**目的**：定义项目的基本原则、技术约束、质量标准。类似 SpecKit 的 CONSTITUTION。
+**Goal**: Define project principles, technical constraints, and quality standards. Similar to SpecKit's CONSTITUTION.
 
-**准入条件**：项目已在 `ORG/PROJECTS/` 下建立目录
+**Entry Condition**: Project directory exists under `ORG/PROJECTS/`.
 
-**产出物**：`pipeline/CONSTITUTION.md`，包含：
-- 项目目标（1-3 句话）
-- 技术栈约束（语言、框架、依赖限制）
-- 质量标准（测试覆盖率要求、性能指标、文档要求）
-- 边界约束（不做什么、安全红线）
-- 与 ORG 章程的对齐声明
+**Artifact**: `pipeline/CONSTITUTION.md`, containing:
+- Project Goal (1-3 sentences)
+- Tech Stack Constraints (languages, frameworks, dependency limits)
+- Quality Standards (test coverage requirements, performance metrics, documentation requirements)
+- Boundary Constraints (what not to do, security red lines)
+- Alignment Statement with ORG Charter
 
-**退出条件**：CONSTITUTION.md 存在且非空，包含以上所有章节
-
----
-
-### Phase 1: Research（调研）
-
-**目的**：调研现有方案、论文、开源实现，建立知识基础。
-
-**准入条件**：Phase 0 完成
-
-**产出物**：`pipeline/RESEARCH.md`，包含：
-- 调研范围与方法
-- 关键发现（至少 5 条，每条附来源链接）
-- 现有方案对比表
-- 技术风险识别
-- 推荐方向（附理由）
-
-**退出条件**：RESEARCH.md 存在，包含至少 5 条有来源的发现
+**Exit Condition**: CONSTITUTION.md exists and is not empty, containing all sections above.
 
 ---
 
-### Phase 2: Specify（需求规格）
+### Phase 1: Research
 
-**目的**：基于调研结果，定义精确的需求规格和验收标准。借鉴 SpecKit 的 SPECIFICATION。
+**Goal**: Survey existing solutions, papers, open source implementations to build a knowledge base.
 
-**准入条件**：Phase 1 完成
+**Entry Condition**: Phase 0 Complete.
 
-**输入**：CONSTITUTION.md + RESEARCH.md
+**Artifact**: `pipeline/RESEARCH.md`, containing:
+- Research scope and methods
+- Key Findings (at least 5, each with source links)
+- Comparison table of existing solutions
+- Technical risk identification
+- Recommended direction (with reasoning)
 
-**产出物**：`pipeline/SPECIFICATION.md`，包含：
-- 功能需求列表（每条可测试）
-- 非功能需求（性能、可靠性、可维护性）
-- 接口定义（输入/输出格式）
-- 验收标准（每个需求对应的验收条件）
-- 排除项（明确不做什么）
-
-**退出条件**：SPECIFICATION.md 存在，每个功能需求都有对应的验收标准
+**Exit Condition**: RESEARCH.md exists, containing at least 5 sourced findings.
 
 ---
 
-### Phase 3: Plan + Tasks（计划与任务分解）
+### Phase 2: Specify
 
-**目的**：制定实现计划，分解为可执行的原子任务。借鉴 SpecKit 的 PLAN + TASKS。
+**Goal**: Define precise requirements and acceptance criteria based on research. Borrowed from SpecKit's SPECIFICATION.
 
-**准入条件**：Phase 2 完成
+**Entry Condition**: Phase 1 Complete.
 
-**输入**：CONSTITUTION.md + RESEARCH.md + SPECIFICATION.md
+**Input**: CONSTITUTION.md + RESEARCH.md
 
-**产出物**：
-- `pipeline/PLAN.md`：实现路线图（分阶段、有依赖关系）
-- `pipeline/TASKS.md`：原子任务列表，每个任务包含：
-  - 任务 ID（T-001, T-002...）
-  - 描述
-  - 依赖（哪些任务必须先完成）
-  - 预期产出文件
-  - 测试方案（如何验证这个任务完成了）
-  - 预估复杂度（S/M/L）
+**Artifact**: `pipeline/SPECIFICATION.md`, containing:
+- Functional Requirements list (each testable)
+- Non-functional Requirements (performance, reliability, maintainability)
+- Interface Definitions (input/output formats)
+- Acceptance Criteria (acceptance condition for each requirement)
+- Exclusions (explicitly what not to do)
 
-**退出条件**：PLAN.md + TASKS.md 存在，每个任务都有测试方案
+**Exit Condition**: SPECIFICATION.md exists, every functional requirement has corresponding acceptance criteria.
 
 ---
 
-### Phase 4: Implement（实现）
+### Phase 3: Plan + Tasks
 
-**目的**：逐任务编码。每个任务在独立的干净 session 中执行。
+**Goal**: Create implementation plan, break down into executable atomic tasks. Borrowed from SpecKit's PLAN + TASKS.
 
-**准入条件**：Phase 3 完成
+**Entry Condition**: Phase 2 Complete.
 
-**输入**：每个子任务只注入 CONSTITUTION.md + SPECIFICATION.md + 该任务在 TASKS.md 中的描述 + 相关代码文件
+**Input**: CONSTITUTION.md + RESEARCH.md + SPECIFICATION.md
 
-**执行方式**：
-- Orchestrator 从 TASKS.md 中按依赖顺序取出下一个未完成任务
-- `sessions_spawn` 一个子 agent，只给它该任务需要的最小上下文
-- 子 agent 完成后更新 `pipeline/IMPL_STATUS.md`
-- 每次 Orchestrator 触发处理 1-3 个任务（避免超时）
+**Artifact**:
+- `pipeline/PLAN.md`: Implementation roadmap (phased, dependencies)
+- `pipeline/TASKS.md`: Atomic task list, each task containing:
+  - Task ID (T-001, T-002...)
+  - Description
+  - Dependencies (which tasks must be done first)
+  - Expected output files
+  - Test Plan (how to verify this task is done)
+  - Estimated Complexity (S/M/L)
 
-**产出物**：
-- 代码文件（在项目 repo 中）
-- `pipeline/IMPL_STATUS.md`：任务完成状态追踪
-
-**退出条件**：TASKS.md 中所有任务标记为 done
-
----
-
-### Phase 5: Test（测试）
-
-**目的**：执行分级测试，生成测试报告。
-
-**准入条件**：Phase 4 完成（所有任务 done）
-
-**测试分级**：
-1. **单元测试**：每个任务的独立测试
-2. **集成测试**：跨任务的接口测试
-3. **验收测试**：对照 SPECIFICATION.md 的验收标准逐条验证
-
-**产出物**：`pipeline/TEST_REPORT.md`，包含：
-- 测试执行摘要（通过/失败/跳过数量）
-- 每条验收标准的通过状态
-- 失败用例详情
-- 测试覆盖率（如适用）
-
-**退出条件**：TEST_REPORT.md 存在，验收测试通过率 >= 阈值（默认 80%，可在 config 中调整）
+**Exit Condition**: PLAN.md + TASKS.md exist, every task has a test plan.
 
 ---
 
-### Phase 6: Review（审查）
+### Phase 4: Implement
 
-**目的**：质量审查 + 目标达成分析。这是最关键的门控。
+**Goal**: Code task by task. Each task executes in an independent clean session.
 
-**准入条件**：Phase 5 完成
+**Entry Condition**: Phase 3 Complete.
 
-**输入**：全部 pipeline 产出物
+**Input**: Each sub-task is injected with only CONSTITUTION.md + SPECIFICATION.md + description of that task in TASKS.md + relevant code files.
 
-**审查维度**：
-1. **规格符合度**：代码是否满足 SPECIFICATION.md 的所有需求？
-2. **质量标准**：是否满足 CONSTITUTION.md 定义的质量标准？
-3. **测试充分性**：TEST_REPORT.md 是否覆盖了所有关键路径？
-4. **可维护性**：代码结构、文档、注释是否足够？
-5. **目标达成**：整体是否达到了项目目标？
+**Execution Method**:
+- Orchestrator picks the next incomplete task from TASKS.md in dependency order.
+- `sessions_spawn` a sub-agent, giving it only the minimum context needed for that task.
+- Sub-agent updates `pipeline/IMPL_STATUS.md` upon completion.
+- Orchestrator triggers processing of 1-3 tasks at a time (to avoid timeout).
 
-**产出物**：`pipeline/REVIEW_REPORT.md`，包含：
-- 各维度评分（1-5）
-- 总体判定：`PASS` / `FAIL`
-- 如果 FAIL：指出具体问题 + 建议回退到哪个阶段
-- 如果 PASS：项目完成确认
+**Artifact**:
+- Code files (in project repo)
+- `pipeline/IMPL_STATUS.md`: Task completion status tracking
 
-**退出条件**：
-- PASS → Pipeline 完成，更新 `ORG/PROJECTS/<project>/STATUS.md`
-- FAIL → Orchestrator 将 currentPhase 回退到指定阶段，附上 review 意见作为该阶段的额外输入
+**Exit Condition**: All tasks in TASKS.md marked as done.
 
 ---
 
-### Phase 7: Gap Analysis（差距分析）
+### Phase 5: Test
 
-**目的**：深度分析当前轮次成果与项目最终目标之间的差距，为下一轮 Pipeline 提供结构化的改进方向。Review 回答"这轮过不过"，Gap Analysis 回答"下轮怎么更好"。
+**Goal**: Execute tiered testing, generate test report.
 
-**准入条件**：Phase 6 Review 判定为 PASS
+**Entry Condition**: Phase 4 Complete (all tasks done).
 
-**输入**：全部 pipeline 产出物 + CONSTITUTION.md（最终目标基准）+ 历史轮次归档（如有）
+**Testing Tiers**:
+1. **Unit Test**: Independent test for each task.
+2. **Integration Test**: Cross-task interface tests.
+3. **Acceptance Test**: Verify against SPECIFICATION.md acceptance criteria item by item.
 
-**产出物**：`pipeline/GAP_ANALYSIS.md`，包含：
-- **量化完成度**：逐模块评估当前成果与最终目标的差距（百分比或评分）
-- **工况/场景覆盖分析**：已覆盖哪些场景、缺失哪些边界/极端场景
-- **图表充分性评估**：现有图表是否足以支撑结论，建议新增哪些
-- **跨轮次进步追踪**：与上一轮（如有）的关键指标对比，量化改进幅度
-- **下轮改进建议**：按优先级（高/中/低）列出具体可执行的改进项，每项附理由和预期收益
-- **质量标准更新建议**：是否需要调整验收阈值或新增质量维度
+**Artifact**: `pipeline/TEST_REPORT.md`, containing:
+- Test Execution Summary (pass/fail/skip counts)
+- Pass status for each acceptance criterion
+- Failure case details
+- Test Coverage (if applicable)
 
-**退出条件**：GAP_ANALYSIS.md 存在且非空，包含量化完成度和至少 3 条分优先级的改进建议
-
-**角色配置**：
-- 推荐 agentId：`<your-researcher-agent>`
-- 推荐模型：`gpro`（擅长长文深度分析和结构化输出）
-
-**与 Review 的区别**：
-- Review（Phase 6）是门控——决定 PASS/FAIL，关注"这轮做得够不够好"
-- Gap Analysis（Phase 7）是前瞻——假设已 PASS，关注"下轮怎么做得更好"
-- Review 由 reviewer 角色执行（严格把关），Gap Analysis 由 professor 角色执行（深度分析）
+**Exit Condition**: TEST_REPORT.md exists, acceptance test pass rate >= threshold (default 80%, adjustable in config).
 
 ---
 
-## 4. Orchestrator 运行逻辑（伪代码）
+### Phase 6: Review
+
+**Goal**: Quality review + goal achievement analysis. This is the critical gate.
+
+**Entry Condition**: Phase 5 Complete.
+
+**Input**: All pipeline artifacts.
+
+**Review Dimensions**:
+1. **Spec Compliance**: Does code meet all requirements in SPECIFICATION.md?
+2. **Quality Standards**: Does it meet quality standards defined in CONSTITUTION.md?
+3. **Test Sufficiency**: Does TEST_REPORT.md cover all critical paths?
+4. **Maintainability**: Are code structure, docs, comments sufficient?
+5. **Goal Achievement**: Is the project goal achieved overall?
+
+**Artifact**: `pipeline/REVIEW_REPORT.md`, containing:
+- Scores for each dimension (1-5)
+- Overall Verdict: `PASS` / `FAIL`
+- If FAIL: Point out specific issues + suggest which phase to rollback to.
+- If PASS: Project completion confirmation.
+
+**Exit Condition**:
+- PASS → Pipeline Complete, update `ORG/PROJECTS/<project>/STATUS.md`
+- FAIL → Orchestrator rolls back currentPhase to specified phase, attaching review comments as extra input for that phase.
+
+---
+
+### Phase 7: Gap Analysis
+
+**Goal**: Deep analysis of the gap between current run results and final project goals, providing structured improvement directions for the next Pipeline run. Review answers "Is this run good enough?", Gap Analysis answers "How to do better next run?".
+
+**Entry Condition**: Phase 6 Review verdict is PASS.
+
+**Input**: All pipeline artifacts + CONSTITUTION.md (final goal baseline) + Historical run archives (if any).
+
+**Artifact**: `pipeline/GAP_ANALYSIS.md`, containing:
+- **Quantified Completion**: Evaluate gap between current results and final goals per module (percentage or score).
+- **Scenario Coverage Analysis**: Which scenarios covered, which boundary/extreme scenarios missing.
+- **Chart Sufficiency Assessment**: Are existing charts sufficient to support conclusions, suggest new ones.
+- **Cross-Run Progress Tracking**: Compare key metrics with previous run (if any), quantify improvement magnitude.
+- **Next Run Improvement Suggestions**: List specific executable improvement items by priority (High/Medium/Low), each with reason and expected benefit.
+- **Quality Standard Update Suggestions**: Whether to adjust acceptance thresholds or add new quality dimensions.
+
+**Exit Condition**: GAP_ANALYSIS.md exists and is not empty, containing quantified completion and at least 3 prioritized improvement suggestions.
+
+**Role Configuration**:
+- Recommended agentId: `<your-researcher-agent>`
+- Recommended model: `gpro` (Good at long-text deep analysis and structured output)
+
+**Difference from Review**:
+- Review (Phase 6) is a Gate — decides PASS/FAIL, focuses on "Is this run good enough".
+- Gap Analysis (Phase 7) is Forward-looking — assumes PASS, focuses on "How to do better next run".
+- Review executed by reviewer role (strict gatekeeping), Gap Analysis by professor role (deep analysis).
+
+---
+
+## 4. Orchestrator Logic (Pseudo-code)
 
 ```
-每次 cron 触发：
+Every cron trigger:
 
-1. 读 PIPELINE_STATE.json
+1. Read PIPELINE_STATE.json
 2. current = state.currentPhase
 
 3. if current.status == "pending":
-     # 启动该阶段
-     检查准入条件（前置阶段的 artifact 是否存在且有效）
-     if 准入条件不满足:
-       记录 blocker，播报，退出
+     # Start this phase
+     Check entry conditions (whether previous phase artifact exists and is valid)
+     if entry condition not met:
+       Record blocker, broadcast, exit
      role = state.config.roles[current]
-     sessions_spawn(agentId=role.agentId, model=role.model, task=构建阶段 prompt)
-     更新 status → "in_progress"
+     sessions_spawn(agentId=role.agentId, model=role.model, task=Build Phase Prompt)
+     Update status → "in_progress"
 
 4. if current.status == "in_progress":
-     # 检查产出物
-     if artifact 存在且满足退出条件:
-       更新 status → "done"
-       推进 currentPhase → 下一阶段
-       写 PIPELINE_LOG.jsonl
+     # Check artifact
+     if artifact exists and meets exit condition:
+       Update status → "done"
+       Advance currentPhase → Next Phase
+       Write PIPELINE_LOG.jsonl
        broadcast progress to notification channel
      elif retryCount >= maxRetries:
-       标记 blocker，通知人工介入
+       Mark blocker, notify human intervention
      else:
        retryCount++
-       重新 spawn 该阶段
+       Re-spawn this phase
 
 5. if current == "review" && status == "done":
-     读 REVIEW_REPORT.md
-     if 判定 == PASS:
-       推进 currentPhase → gap_analysis（pending）
-     if 判定 == FAIL:
-       回退 currentPhase 到指定阶段
-       将 review 意见注入该阶段的额外输入
+     Read REVIEW_REPORT.md
+     if verdict == PASS:
+       Advance currentPhase → gap_analysis (pending)
+     if verdict == FAIL:
+       Rollback currentPhase to specified phase
+       Inject review comments into extra input of that phase
 
 5b. if current == "gap_analysis" && status == "done":
-     Pipeline 本轮完成 🎉
-     归档：复制 pipeline/* → pipeline_archive/run-{runNumber}/
-     更新 ORG/PROJECTS/<project>/STATUS.md
-     PIPELINE_LOG.jsonl 追加 {"event": "run_archived", "run": runNumber}
-     runNumber++，所有阶段重置为 pending（准备下一轮）
-     下一轮 Constitution 阶段自动获得 GAP_ANALYSIS.md 作为输入
+     Pipeline Run Complete 🎉
+     Archive: Copy pipeline/* → pipeline_archive/run-{runNumber}/
+     Update ORG/PROJECTS/<project>/STATUS.md
+     PIPELINE_LOG.jsonl append {"event": "run_archived", "run": runNumber}
+     runNumber++, reset all phases to pending (Ready for next run)
+     Next run Constitution phase automatically gets GAP_ANALYSIS.md as input
 
-6. 保存 PIPELINE_STATE.json
+6. Save PIPELINE_STATE.json
 ```
 
 ---
 
-## 5. Orchestrator Cron Job 模板
+## 5. Orchestrator Cron Job Template
 
 ```json
 {
@@ -430,7 +430,7 @@ ORG/PROJECTS/<project>/
   "sessionTarget": "isolated",
   "payload": {
     "kind": "agentTurn",
-    "message": "你是 Pipeline Orchestrator。\n\n你的唯一职责是推进项目 pipeline，不要自己做具体工作。\n\n必读文件：\n- Pipeline 状态：ORG/PROJECTS/<project>/PIPELINE_STATE.json\n- ORG Boot Sequence：先读 TASKBOARD.md → 部门 HANDOFF.md → ASSET_REGISTRY.md\n\n执行逻辑：\n1. 读 PIPELINE_STATE.json，确定 currentPhase 和 runNumber\n2. 检查当前阶段的准入条件（前置 artifact 是否存在）\n3. 如果阶段 pending → sessions_spawn 对应角色执行该阶段\n4. 如果阶段 in_progress → 检查产出物是否满足退出条件\n5. 满足 → 推进到下一阶段；不满足 → 重试或标记 blocker\n6. 如果 Review PASS → 归档当前轮次（复制 pipeline/* → pipeline_archive/run-{N}/），runNumber++，所有阶段重置为 pending\n7. 如果 Review FAIL → 回退到指定阶段，注入 review 意见\n8. 更新 PIPELINE_STATE.json + 追加 PIPELINE_LOG.jsonl\n9. broadcast progress summary to notification channel\n\n硬约束：\n- 不要自己写代码/调研/测试，全部通过 sessions_spawn 委派\n- 每次触发最多推进 1 个阶段\n- 不修改系统配置/网关\n- 遵守 ORG Closeout：更新部门 HANDOFF.md",
+    "message": "You are the Pipeline Orchestrator.\n\nYour ONLY responsibility is to advance the project pipeline. Do not do concrete work yourself.\n\nMandatory Reading:\n- Pipeline State: ORG/PROJECTS/<project>/PIPELINE_STATE.json\n- ORG Boot Sequence: Read TASKBOARD.md → Dept HANDOFF.md → ASSET_REGISTRY.md first\n\nExecution Logic:\n1. Read PIPELINE_STATE.json, determine currentPhase and runNumber\n2. Check entry conditions for current phase (previous artifact exists)\n3. If phase pending → sessions_spawn corresponding role to execute phase\n4. If phase in_progress → check if artifact meets exit conditions\n5. Met → Advance to next phase; Not met → Retry or mark blocker\n6. If Review PASS → Archive current run (copy pipeline/* → pipeline_archive/run-{N}/), runNumber++, reset all phases to pending\n7. If Review FAIL → Rollback to specified phase, inject review comments\n8. Update PIPELINE_STATE.json + Append PIPELINE_LOG.jsonl\n9. broadcast progress summary to notification channel\n\nHard Constraints:\n- Do not write code/research/test yourself, delegate ALL via sessions_spawn\n- Advance at most 1 phase per trigger\n- Do not modify system config/gateway\n- Observe ORG Closeout: Update Dept HANDOFF.md",
     "model": "gflash2",
     "timeoutSeconds": 600
   },
@@ -442,153 +442,153 @@ ORG/PROJECTS/<project>/
 }
 ```
 
-> Orchestrator 本身用轻量模型（gflash2/mini），因为它只做判断和调度，不做重活。
+> Orchestrator itself uses a lightweight model (gflash2/mini) because it only does judgment and scheduling, not heavy lifting.
 
 ---
 
-## 6. 多角色协作机制
+## 6. Multi-Role Collaboration Mechanism
 
-### 6.1 内部协作（sessions_spawn）
+### 6.1 Internal Collaboration (sessions_spawn)
 
 ```
 Orchestrator
-  ├── spawn(<your-researcher-agent>, "调研 XX 领域...")  → RESEARCH.md
-  ├── spawn(<your-architect-agent>, "设计 XX 架构...")   → PLAN.md
-  ├── spawn(<your-coder-agent>, "实现任务 T-003...")     → code
-  └── spawn(<your-reviewer-agent>, "审查 pipeline...")   → REVIEW_REPORT.md
+  ├── spawn(<your-researcher-agent>, "Research XX field...")  → RESEARCH.md
+  ├── spawn(<your-architect-agent>, "Design XX architecture...")   → PLAN.md
+  ├── spawn(<your-coder-agent>, "Implement Task T-003...")     → code
+  └── spawn(<your-reviewer-agent>, "Review pipeline...")   → REVIEW_REPORT.md
 ```
 
-每个 spawn 的子 agent：
-- 在独立 isolated session 中运行
-- 只接收该阶段需要的文件路径作为输入
-- 产出物写入 `pipeline/` 目录
-- 完成后 session 自动结束
+Each spawned sub-agent:
+- Runs in an independent isolated session
+- Receives only the file paths needed for that phase as input
+- Writes artifacts to `pipeline/` directory
+- Session ends automatically upon completion
 
-### 6.2 外部播报（Notification Channel）
+### 6.2 External Broadcast (Notification Channel)
 
 Orchestrator broadcasts a summary to the project notification channel on each phase transition:
 
 ```
-📋 Pipeline [example-project] 进度更新
+📋 Pipeline [example-project] Progress Update
 ━━━━━━━━━━━━━━━━━━━━━━
-✅ Phase 0: Constitute — 完成
-✅ Phase 1: Research — 完成
-🔄 Phase 2: Specify — 进行中 (by @openclaw_designer_bot)
+✅ Phase 0: Constitute — Done
+✅ Phase 1: Research — Done
+🔄 Phase 2: Specify — In Progress (by @openclaw_designer_bot)
 ⬜ Phase 3: Plan+Tasks
 ⬜ Phase 4: Implement
 ⬜ Phase 5: Test
 ⬜ Phase 6: Review
 ━━━━━━━━━━━━━━━━━━━━━━
-下次检查：30 分钟后
+Next Check: in 30 mins
 ```
 
-### 6.3 人工介入点
+### 6.3 Human Intervention Points
 
-以下情况 Orchestrator 会暂停并通知 CEO：
-- 某阶段重试 3 次仍未通过
-- Review 阶段判定 FAIL 且需要回退超过 2 个阶段
-- 遇到需要系统级变更的 blocker
-- 项目完成（PASS）
-
----
-
-## 7. 与现有 ORG 章程的兼容性对照
-
-| ORG 规则 | Pipeline 如何遵守 |
-|---------|-----------------|
-| Boot Sequence（读 TASKBOARD → HANDOFF → ASSET_REGISTRY） | Orchestrator prompt 中强制要求；每个子 agent 的 prompt 中也注入 |
-| Closeout（更新 HANDOFF/STATUS） | Orchestrator 每次阶段转换后自动更新 |
-| 落盘规则（不允许只在聊天里说做完了） | 所有阶段产出物都是文件，PIPELINE_LOG.jsonl 记录全过程 |
-| 变更控制（系统配置只有保障部能改） | Orchestrator 和子 agent 都不碰系统配置 |
-| 记忆分层（公司/部门/项目/agent） | Pipeline 产出物在项目级，状态在项目级，不污染其他层 |
-| 复用制度（L0/L1/L2） | Pipeline 框架本身作为 L1 资产登记 |
+Orchestrator will pause and notify CEO in these cases:
+- A phase fails after 3 retries
+- Review phase verdict is FAIL and requires rollback of more than 2 phases
+- Encountering a blocker requiring system-level change
+- Project Complete (PASS)
 
 ---
 
-## 8. 可观测性（Observability）
+## 7. Compatibility with Existing ORG Charter
 
-借鉴 Effective Harnesses 文章的建议：
+| ORG Rule | How Pipeline Complies |
+|---------|-----------------|\
+| Boot Sequence (Read TASKBOARD → HANDOFF → ASSET_REGISTRY) | Enforced in Orchestrator prompt; injected into each sub-agent's prompt too |
+| Closeout (Update HANDOFF/STATUS) | Automatically updated by Orchestrator after each phase transition |
+| Persistence Rule (No \"done\" in chat only) | All phase artifacts are files, PIPELINE_LOG.jsonl records full process |
+| Change Control (Only SRE modifies system config) | Orchestrator and sub-agents do not touch system config |
+| Memory Layering (Org/Dept/Project/Agent) | Pipeline artifacts at Project level, state at Project level, no pollution |
+| Reuse Policy (L0/L1/L2) | Pipeline framework itself is registered as L1 asset |
+
+---
+
+## 8. Observability
+
+Borrowed suggestions from Effective Harnesses article:
 
 ### 8.1 PIPELINE_LOG.jsonl
-- 每次阶段转换记录一条（时间、事件类型、agent、耗时、产出物路径）
-- Append-only，不可修改，用于事后审计
+- One record per phase transition (timestamp, event type, agent, duration, artifact path)
+- Append-only, immutable, used for post-audit
 
-### 8.2 阶段 Checkpoint
-- 每个阶段完成时，在 PIPELINE_STATE.json 中记录 completedAt、completedBy、duration
-- 如果阶段内部有多步（如 implement 的多个子任务），在 IMPL_STATUS.md 中逐任务追踪
+### 8.2 Phase Checkpoint
+- When each phase completes, record completedAt, completedBy, duration in PIPELINE_STATE.json
+- If phase has multiple steps (like multiple subtasks in implement), track task-by-task in IMPL_STATUS.md
 
-### 8.3 Guardrails（护栏）
-- 准入条件检查：前置 artifact 必须存在且非空
-- 退出条件检查：产出物必须满足最低质量标准
-- 重试上限：默认 3 次，超过则人工介入
-- 超时保护：每个子 agent 有 timeoutSeconds 限制
-
----
-
-## 9. 灵活性设计
-
-### 9.1 阶段可裁剪
-不是所有项目都需要 7 个阶段。小项目可以跳过：
-- 跳过 Phase 0（用部门 CHARTER 代替）
-- 合并 Phase 1+2（调研和规格一起做）
-- 跳过 Phase 6（小改动不需要正式 review）
-
-在 PIPELINE_STATE.json 的 phases 中，将不需要的阶段设为 `"status": "skipped"` 即可。
-
-### 9.2 角色可替换
-`config.roles` 中的 agentId 和 model 可按项目调整。比如纯研究项目可以让 professor 做更多阶段。
-
-### 9.3 触发频率可调
-Orchestrator 的 cron 频率可以从 5 分钟到 24 小时不等，取决于项目紧迫程度。
+### 8.3 Guardrails
+- Entry Condition Check: Previous artifact must exist and be non-empty
+- Exit Condition Check: Artifact must meet minimum quality standards
+- Retry Limit: Default 3, human intervention if exceeded
+- Timeout Protection: Each sub-agent has timeoutSeconds limit
 
 ---
 
-## 10. 与现有 Cron Job 的迁移关系
+## 9. Flexibility Design
 
-现有的单体 cron job（如 example:iteration-loop）不需要立即废弃。迁移策略：
+### 9.1 Phase Tailoring
+Not all projects need 7 phases. Small projects can skip:
+- Skip Phase 0 (Use Dept CHARTER instead)
+- Merge Phase 1+2 (Research and Spec together)
+- Skip Phase 6 (Small changes don't need formal review)
 
-1. **新项目**：直接使用 Pipeline 框架
-2. **现有项目**：在当前迭代周期结束后，创建 Pipeline 目录，将已有产出物映射到对应阶段，然后切换到 Pipeline 模式
-3. **维护类 cron**（如 example-maintenance）：不需要 Pipeline，保持现状。Pipeline 适用于有明确目标和交付物的项目
+Set unwanted phases to `"status": "skipped"` in `phases` of `PIPELINE_STATE.json`.
+
+### 9.2 Role Replaceability
+`agentId` and `model` in `config.roles` can be adjusted per project. E.g., pure research projects can let professor do more phases.
+
+### 9.3 Adjustable Trigger Frequency
+Orchestrator cron frequency can range from 5 mins to 24 hours, depending on project urgency.
 
 ---
 
-## 附录 A：术语表
+## 10. Migration from Existing Cron Jobs
 
-| 术语 | 含义 |
+Existing monolithic cron jobs (like example:iteration-loop) don't need immediate deprecation. Migration strategy:
+
+1. **New Projects**: Use Pipeline framework directly.
+2. **Existing Projects**: At the end of current iteration cycle, create Pipeline directory, map existing artifacts to corresponding phases, then switch to Pipeline mode.
+3. **Maintenance Crons** (like example-maintenance): Don't need Pipeline, keep as is. Pipeline is for projects with clear goals and deliverables.
+
+---
+
+## Appendix A: Glossary
+
+| Term | Meaning |
 |------|------|
-| Pipeline | 项目的阶段状态机，定义了从立项到交付的完整流程 |
-| Orchestrator | 调度 agent，负责读取 Pipeline 状态并推进阶段 |
-| Phase | Pipeline 中的一个阶段 |
-| Artifact | 阶段的产出物（文件） |
-| Gate | 阶段之间的门控条件（准入/退出） |
-| Spawn | 通过 sessions_spawn 启动一个子 agent session |
-| Rollback | Review 不通过时，将 Pipeline 回退到指定阶段 |
+| Pipeline | Project phase state machine, defining full process from inception to delivery |
+| Orchestrator | Scheduling agent, responsible for reading Pipeline state and advancing phases |
+| Phase | One stage in the Pipeline |
+| Artifact | Output product of a phase (file) |
+| Gate | Gating condition between phases (Entry/Exit) |
+| Spawn | Launch a sub-agent session via sessions_spawn |
+| Rollback | Revert Pipeline to a specific phase when Review fails |
 
 ---
 
-## 11. 双层求助机制（Assistance Protocol）
+## 11. Dual-Layer Assistance Mechanism (Assistance Protocol)
 
-> 新增于 2026-02-14 | 解决子 agent 卡住时无横向求助通道的问题
+> Added 2026-02-14 | Solves the problem of sub-agents getting stuck with no lateral help channel
 
-### 11.1 问题场景
+### 11.1 Problem Scenario
 
-子 agent 在执行阶段任务时可能因以下原因卡住：
-- 模型能力不足（简单模型解不了复杂问题）
-- 需要不同视角（同一个模型反复尝试同一思路）
-- 参数调优类任务需要多方案对比
+Sub-agents may get stuck during phase tasks due to:
+- Insufficient model capability (simple model can't solve complex problem)
+- Need for different perspective (same model retrying same approach repeatedly)
+- Parameter tuning tasks needing multi-solution comparison
 
-现有机制只有 `maxRetries` 重试同一模型，没有升级或求助通道。
+Existing mechanism only has `maxRetries` retrying the same model, with no escalation or help channel.
 
-### 11.2 第一层：Model Escalation（模型升级链）
+### 11.2 Layer 1: Model Escalation (Escalation Chain)
 
-当子 agent 执行失败时，Orchestrator 自动沿预定义的升级链换更强模型重试：
+When sub-agent execution fails, Orchestrator automatically retries with a stronger model along a predefined chain:
 
 ```
-mini → glm → codex → sonnet → ⛔ 人工介入
+mini → glm → codex → sonnet → ⛔ Human Intervention
 ```
 
-配置（在 PIPELINE_STATE.json 的 config 中）：
+Configuration (in `config` of `PIPELINE_STATE.json`):
 
 ```json
 "escalation": {
@@ -599,21 +599,21 @@ mini → glm → codex → sonnet → ⛔ 人工介入
 }
 ```
 
-- `chain`：模型升级顺序，从便宜到贵
-- `escalateAfterFails`：每个模型失败几次后升级（默认 1）
-- `humanThreshold`：到达此模型仍失败则触发第二层或人工介入
+- `chain`: Model upgrade order, cheap to expensive
+- `escalateAfterFails`: Upgrade after how many failures per model (default 1)
+- `humanThreshold`: If this model still fails, trigger Layer 2 or human intervention
 
-逻辑：
-1. 初始模型（由 config.roles 指定）执行失败
-2. Orchestrator 取 chain 中下一个模型，重新 spawn
-3. 每次升级记录到 PIPELINE_LOG.jsonl：`{"event":"model_escalated","fromModel":"...","toModel":"..."}`
-4. 到达 humanThreshold 仍失败 → 进入第二层
+Logic:
+1. Initial model (specified by config.roles) fails.
+2. Orchestrator picks next model in chain, re-spawns.
+3. Record each upgrade to PIPELINE_LOG.jsonl: `{"event":"model_escalated","fromModel":"...","toModel":"..."}`
+4. If humanThreshold reached and still fails → Enter Layer 2.
 
-### 11.3 第二层：Peer Consult（并行多模型求助）
+### 11.3 Layer 2: Peer Consult (Parallel Multi-Model Consultation)
 
-同时向多个不同模型发起咨询，收集多角度方案，综合后重试。
+Simultaneously consult multiple different models, collect multi-perspective solutions, synthesize, then retry.
 
-配置：
+Configuration:
 
 ```json
 "peerConsult": {
@@ -626,52 +626,52 @@ mini → glm → codex → sonnet → ⛔ 人工介入
 }
 ```
 
-流程：
+Flow:
 
 ```
-子 agent 卡住（escalation 链耗尽）
+Sub-agent stuck (Escalation chain exhausted)
     │
     ▼
-Orchestrator 收集错误上下文
+Orchestrator collects error context
     │
     ├── spawn(consultant, model=gpro,   task=consult_request prompt)
     ├── spawn(consultant, model=glm,    task=consult_request prompt)
     └── spawn(consultant, model=sonnet, task=consult_request prompt)
     │
-    ▼ （三个顾问并行返回）
+    ▼ (Three consultants return in parallel)
     │
 spawn(synthesizer, model=opus, task=consult_synthesize prompt)
     │
     ▼
-将综合方案注入原阶段 prompt
+Inject synthesized solution into original phase prompt
     │
     ▼
-用 escalation chain 最强模型重新 spawn 原任务
+Re-spawn original task using strongest model in escalation chain
     │
-    ├─ 成功 → 正常推进 ✅
-    └─ 失败 → 标记 blocker，通知人工 🚨
+    ├─ Success → Proceed normally ✅
+    └─ Fail → Mark blocker, notify human 🚨
 ```
 
-### 11.4 子 Agent 卡住报告协议
+### 11.4 Sub-Agent Stuck Reporting Protocol
 
-子 agent 在 Phase prompt 中被告知：连续尝试 2 次失败后，不要继续死磕，在产出文件中报告 stuck 状态：
+Sub-agents are instructed in Phase prompt: After 2 consecutive failures, do not persist blindly. Report stuck status in artifact file:
 
-Implement 阶段（IMPL_STATUS.md）：
+Implement Phase (IMPL_STATUS.md):
 ```
-- T-xxx: stuck | 错误摘要: <一句话> | 已尝试: <方案列表> | 相关文件: <路径>
+- T-xxx: stuck | Error Summary: <One sentence> | Tried: <List of approaches> | Relevant Files: <Path>
 ```
 
-Test 阶段（TEST_REPORT.md）：
+Test Phase (TEST_REPORT.md):
 ```
 ### Stuck Items
-- 测试项: <FR-xxx> | 错误摘要: <一句话> | 已尝试: <方案列表> | 相关文件: <路径>
+- Test Item: <FR-xxx> | Error Summary: <One sentence> | Tried: <List of approaches> | Relevant Files: <Path>
 ```
 
-Orchestrator 检测到 stuck 标记后自动进入求助流程。
+Orchestrator detects stuck flag and automatically enters assistance flow.
 
-### 11.5 PIPELINE_STATE.json 扩展字段
+### 11.5 PIPELINE_STATE.json Extended Fields
 
-阶段对象新增 `stuckInfo`：
+Phase object adds `stuckInfo`:
 
 ```json
 {
@@ -680,7 +680,7 @@ Orchestrator 检测到 stuck 标记后自动进入求助流程。
     "stuckInfo": {
       "taskId": "T-003",
       "failCount": 4,
-      "errorSummary": "PyBaMM Chen2020 模型参数不收敛",
+      "errorSummary": "PyBaMM Chen2020 model parameters not converging",
       "escalationLevel": 3,
       "consultRequested": true,
       "consultResults": [
@@ -688,35 +688,35 @@ Orchestrator 检测到 stuck 标记后自动进入求助流程。
         {"model": "glm",  "sessionKey": "...", "status": "done", "suggestion": "..."},
         {"model": "sonnet","sessionKey": "...", "status": "done", "suggestion": "..."}
       ],
-      "synthesizedSolution": "综合方案：...",
+      "synthesizedSolution": "Synthesized Solution: ...",
       "retryWithSolution": false
     }
   }
 }
 ```
 
-### 11.6 新增日志事件类型
+### 11.6 New Log Event Types
 
 ```jsonl
-{"ts":"...","event":"model_escalated","phase":"implement","task":"T-003","fromModel":"codex","toModel":"sonnet"}
-{"ts":"...","event":"consult_requested","phase":"implement","task":"T-003","models":["gpro","glm","sonnet"]}
-{"ts":"...","event":"consult_complete","phase":"implement","task":"T-003","model":"gpro"}
-{"ts":"...","event":"solution_synthesized","phase":"implement","task":"T-003","synthesizer":"opus"}
-{"ts":"...","event":"retry_with_solution","phase":"implement","task":"T-003","model":"sonnet"}
-{"ts":"...","event":"human_escalation","phase":"implement","task":"T-003","reason":"所有自动求助均失败"}
+{"ts":"...\",\"event\":\"model_escalated\",\"phase\":\"implement\",\"task\":\"T-003\",\"fromModel\":\"codex\",\"toModel\":\"sonnet\"}
+{"ts":"...\",\"event\":\"consult_requested\",\"phase\":\"implement\",\"task\":\"T-003\",\"models\":[\"gpro\",\"glm\",\"sonnet\"]}
+{"ts":"...\",\"event\":\"consult_complete\",\"phase\":\"implement\",\"task\":\"T-003\",\"model\":\"gpro\"}
+{"ts":"...\",\"event\":\"solution_synthesized\",\"phase\":\"implement\",\"task\":\"T-003\",\"synthesizer\":\"opus\"}
+{"ts":"...\",\"event\":\"retry_with_solution\",\"phase\":\"implement\",\"task\":\"T-003\",\"model\":\"sonnet\"}
+{"ts":"...\",\"event\":\"human_escalation\",\"phase\":\"implement\",\"task\":\"T-003\",\"reason\":\"All automated assistance failed\"}
 ```
 
-### 11.7 成本控制
+### 11.7 Cost Control
 
-- 第一层升级链从最便宜的模型开始，逐步升级，避免一上来就用贵模型
-- 第二层 Peer Consult 的顾问用中等模型（gpro/glm/sonnet），只有综合环节用 opus
-- `maxConsultRounds` 限制求助轮数（默认 1 轮），防止无限循环
-- 到达 humanThreshold 后不再自动升级到 opus 执行，而是等人类决定
+- Layer 1 escalation starts from cheapest model, upgrades gradually, avoiding expensive models upfront.
+- Layer 2 Peer Consult consultants use medium models (gpro/glm/sonnet), only synthesis uses opus.
+- `maxConsultRounds` limits consultation rounds (default 1) to prevent infinite loops.
+- After humanThreshold, do not auto-upgrade to opus execution, wait for human decision.
 
-### 11.8 Prompt 模板
+### 11.8 Prompt Templates
 
-新增两个模板文件：
-- `templates/PHASE_PROMPTS/consult_request.md` — 顾问 agent 的 prompt
-- `templates/PHASE_PROMPTS/consult_synthesize.md` — 方案综合 agent 的 prompt
+New template files added:
+- `templates/PHASE_PROMPTS/consult_request.md` — Consultant agent prompt
+- `templates/PHASE_PROMPTS/consult_synthesize.md` — Solution synthesizer agent prompt
 
-详见模板文件内容。
+See template file contents for details.

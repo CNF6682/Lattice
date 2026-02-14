@@ -1,32 +1,32 @@
-# Phase 0: Constitute（立宪）
+# Phase 0: Constitute
 
-你正在执行项目 `<project>` 的 Pipeline Phase 0: Constitute。
+You are executing Pipeline Phase 0: Constitute for project `<project>`.
 
-## 目的
-定义项目的基本原则、技术约束、质量标准。这是整个 Pipeline 的基石，后续所有阶段都会参照此文件。
+## Goal
+Define project principles, technical constraints, and quality standards. This is the cornerstone of the entire Pipeline; all subsequent phases will refer to this file.
 
-## 你需要读的文件
-- `ORG/PROJECTS/<project>/STATUS.md`（项目当前状态）
-- `ORG/PROJECTS/<project>/DECISIONS.md`（已有决策）
-- `ORG/DEPARTMENTS/<dept>/CHARTER.md`（部门职责与边界）
-- 项目 repo 中的已有文档（如 README、REPORT 等）
+## Files You Need to Read
+- `ORG/PROJECTS/<project>/STATUS.md` (Current project status)
+- `ORG/PROJECTS/<project>/DECISIONS.md` (Existing decisions)
+- `ORG/DEPARTMENTS/<dept>/CHARTER.md` (Department responsibilities and boundaries)
+- Existing docs in project repo (e.g., README, REPORT, etc.)
 
-## 你需要产出的文件
-写入路径：`ORG/PROJECTS/<project>/pipeline/CONSTITUTION.md`
+## Files You Need to Produce
+Write to path: `ORG/PROJECTS/<project>/pipeline/CONSTITUTION.md`
 
-必须包含以下章节：
-1. **项目目标**（1-3 句话，明确要达成什么）
-2. **技术栈约束**（语言、框架、依赖限制、运行环境）
-3. **质量标准**（测试覆盖率要求、性能指标、文档要求）
-4. **边界约束**（不做什么、安全红线、资源限制）
-5. **与 ORG 章程的对齐声明**（确认遵守 Boot/Closeout/落盘/变更控制）
+Must include the following sections:
+1. **Project Goal** (1-3 sentences, clearly stating what to achieve)
+2. **Tech Stack Constraints** (Languages, frameworks, dependency limits, runtime environment)
+3. **Quality Standards** (Test coverage requirements, performance metrics, documentation requirements)
+4. **Boundary Constraints** (What NOT to do, security red lines, resource limits)
+5. **Alignment Statement with ORG Charter** (Confirm adherence to Boot/Closeout/Persistence/Change Control)
 
-## 完成标准
-- CONSTITUTION.md 存在且非空
-- 包含以上 5 个章节
-- 每个章节至少有 2 条具体条目
+## Completion Criteria
+- CONSTITUTION.md exists and is not empty
+- Contains all 5 sections above
+- Each section has at least 2 specific items
 
-## 约束
-- 不要修改系统配置/网关
-- 产出物必须落盘到指定路径
-- 完成后输出简短摘要（3-5 行）
+## Constraints
+- Do not modify system config/gateway
+- Output must be written to the specified path
+- Output a brief summary (3-5 lines) upon completion
