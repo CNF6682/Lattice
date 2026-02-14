@@ -108,10 +108,23 @@ Every agent, every session:
 | `ORG/ASSET_REGISTRY.md` | Reusable asset registry (template) |
 | `pipeline-framework/DESIGN.md` | Full pipeline design document |
 | `pipeline-framework/templates/` | All prompt templates |
+| `docs/DEPLOY_GUIDE_HUMAN.md` | Human guide — prompt to send your agent |
+| `docs/DEPLOY_GUIDE_AGENT.md` | Agent runbook — step-by-step self-deploy |
 | `examples/` | Example department + project setup |
 
-## Adapting to Your Setup
+## Deploy to Your OpenClaw
 
+Two guides depending on how you want to do it:
+
+### Option A: Let your agent do it
+Send a prompt to your agent and it handles everything. See:
+→ **[Human Guide](docs/DEPLOY_GUIDE_HUMAN.md)** — copy-paste prompt + review checklist
+
+### Option B: Agent self-deploy
+Point your agent directly at the agent runbook. See:
+→ **[Agent Runbook](docs/DEPLOY_GUIDE_AGENT.md)** — 10-phase step-by-step deployment
+
+### Option C: Manual
 1. Copy the `ORG/` directory into your workspace
 2. Create departments under `DEPARTMENTS/` using the charter template
 3. Create projects under `PROJECTS/` — add `PIPELINE_STATE.json` for pipeline-driven ones
