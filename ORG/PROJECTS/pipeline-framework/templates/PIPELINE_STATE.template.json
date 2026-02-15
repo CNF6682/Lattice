@@ -1,5 +1,5 @@
 {
-  "project": "example-project",
+  "project": "<PROJECT_NAME>",
   "version": 1,
   "runNumber": 1,
   "currentPhase": "constitute",
@@ -65,44 +65,43 @@
   "resolvedBlockers": [],
   "lastOrchestratorRun": null,
   "config": {
-    "maxRetries": 3,
+    "maxRetries": 1,
     "autoAdvance": true,
     "notifyTopic": "<your-notification-channel>",
     "roles": {
-      "constitute": { "agentId": "<your-architect-agent>", "model": "<your-strong-model>" },
-      "research":   { "agentId": "<your-researcher-agent>", "model": "<your-research-model>" },
-      "specify":    { "agentId": "<your-designer-agent>", "model": "<your-strong-model>" },
-      "plan":       { "agentId": "<your-architect-agent>", "model": "<your-strong-model>" },
-      "implement":  { "agentId": "<your-coder-agent>", "model": "<your-coding-model>" },
-      "test":       { "agentId": "<your-coder-agent>", "model": "<your-coding-model>" },
-      "review":     { "agentId": "<your-reviewer-agent>", "model": "<your-strong-model>" },
-      "gap_analysis": { "agentId": "<your-researcher-agent>", "model": "<your-research-model>" }
+      "constitute": { "agentId": "<your-architect-agent>", "model": "opus" },
+      "research":   { "agentId": "<your-researcher-agent>", "model": "gpro" },
+      "specify":    { "agentId": "<your-designer-agent>",  "model": "opus" },
+      "plan":       { "agentId": "<your-architect-agent>", "model": "opus" },
+      "implement":  { "agentId": "<your-coder-agent>",     "model": "codex" },
+      "test":       { "agentId": "<your-coder-agent>",     "model": "codex" },
+      "review":     { "agentId": "<your-reviewer-agent>",  "model": "opus" },
+      "gap_analysis": { "agentId": "<your-researcher-agent>", "model": "gpro" }
     },
     "escalation": {
       "enabled": true,
       "chain": [
-        "<cheap-model>",
-        "<mid-model>",
-        "<strong-model>"
+        "mini",
+        "gpro",
+        "codex"
       ],
       "escalateAfterFails": 1,
-      "humanThreshold": "<strong-model>"
+      "humanThreshold": "codex"
     },
     "peerConsult": {
       "enabled": true,
       "triggerAfterEscalationFails": 2,
       "consultModels": [
-        "<model-a>",
-        "<model-b>",
-        "<model-c>"
+        "gpro",
+        "sonnet"
       ],
       "consultTimeout": 300,
-      "synthesizerModel": "<your-strongest-model>",
+      "synthesizerModel": "opus",
       "maxConsultRounds": 1
     },
     "autoTriage": {
       "enabled": true,
-      "triageModel": "<your-strongest-model>",
+      "triageModel": "opus",
       "minConfidence": 0.6,
       "allowRelax": true,
       "allowDefer": true,

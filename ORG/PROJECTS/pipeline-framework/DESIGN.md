@@ -67,6 +67,14 @@ The Orchestrator is not a built-in OpenClaw tool, but an agent role triggered pe
 
 > Note: Roles and models can be adjusted per project needs. The above are default recommendations.
 
+#### Auxiliary Roles (Not phase-bound, spawned on demand)
+
+| Role | Trigger Condition | Recommended Model | Responsibilities |
+|------|-------------------|-------------------|------------------|
+| Consultant (Technical Advisor) | Peer Consult phase | gpro / glm / deepseek-v3 | Analyze stuck problems from different perspectives, provide independent solutions |
+| Synthesizer (Solution Synthesizer) | After all Consultants return | opus | Compare consultant solutions, synthesize optimal executable plan |
+| Triage (Auto-Triage Judge) | After all 3 layers of assistance fail | opus | Decide RELAX / DEFER / BLOCK |
+
 ---
 
 ## 2. File Structure
@@ -411,10 +419,12 @@ Every cron trigger:
 5b. if current == "gap_analysis" && status == "done":
      Pipeline Run Complete 🎉
      Archive: Copy pipeline/* → pipeline_archive/run-{runNumber}/
+     Deferred persistence: Collect all deferredTasks → pipeline_archive/run-{N}/DEFERRED_TASKS.json
+     Relaxed persistence: Collect all triageResult.decision=="RELAX" → pipeline_archive/run-{N}/RELAXED_CONSTRAINTS.json
      Update ORG/PROJECTS/<project>/STATUS.md
-     PIPELINE_LOG.jsonl append {"event": "run_archived", "run": runNumber}
-     runNumber++, reset all phases to pending (Ready for next run)
-     Next run Constitution phase automatically gets GAP_ANALYSIS.md as input
+     PIPELINE_LOG.jsonl append {"event": "run_archived", "run": runNumber, "deferredCount": N, "relaxedCount": M}
+     runNumber++, reset all phases to pending (deferredTasks cleared — already persisted to archive)
+     Next run Constitution phase automatically gets GAP_ANALYSIS.md + DEFERRED_TASKS.json as input
 
 6. Save PIPELINE_STATE.json
 ```
@@ -455,7 +465,14 @@ Orchestrator
   ├── spawn(<your-researcher-agent>, "Research XX field...")  → RESEARCH.md
   ├── spawn(<your-architect-agent>, "Design XX architecture...")   → PLAN.md
   ├── spawn(<your-coder-agent>, "Implement Task T-003...")     → code
-  └── spawn(<your-reviewer-agent>, "Review pipeline...")   → REVIEW_REPORT.md
+  ├── spawn(<your-reviewer-agent>, "Review pipeline...")   → REVIEW_REPORT.md
+  │
+  │  ── Assistance Flow (when sub-agent gets stuck) ──
+  ├── spawn(consultant, model=gpro,   task=consult)  → Solution A
+  ├── spawn(consultant, model=glm,    task=consult)  → Solution B
+  ├── spawn(consultant, model=sonnet, task=consult)  → Solution C
+  ├── spawn(synthesizer, model=opus,  task=synthesize)→ Synthesized Solution
+  └── spawn(triage,     model=opus,  task=triage)    → RELAX/DEFER/BLOCK decision
 ```
 
 Each spawned sub-agent:
@@ -485,10 +502,11 @@ Next Check: in 30 mins
 ### 6.3 Human Intervention Points
 
 Orchestrator will pause and notify CEO in these cases:
-- A phase fails after 3 retries
+- A phase fails after all 3 layers of assistance (Model Escalation → Peer Consult → Auto-Triage) and is judged as BLOCK
 - Review phase verdict is FAIL and requires rollback of more than 2 phases
 - Encountering a blocker requiring system-level change
 - Project Complete (PASS)
+- Auto-Triage RELAX/DEFER count reaches per-run limit
 
 ---
 
@@ -720,3 +738,147 @@ New template files added:
 - `templates/PHASE_PROMPTS/consult_synthesize.md` — Solution synthesizer agent prompt
 
 See template file contents for details.
+
+### 11.9 Layer 3: Auto-Triage
+
+> Added 2026-02-15 | Solves the problem of pipeline stalling when no human is available (e.g., overnight)
+
+#### Problem Scenario
+
+After the escalation chain + peer consult + synthesized solution retry all fail, the existing flow directly marks a blocker and waits for human intervention. If this happens overnight (or when the human is unavailable for an extended period), the pipeline stalls completely, wasting hours of available compute.
+
+#### Design Approach
+
+Before marking a blocker, insert an Auto-Triage step. A strong model (opus) acts as a judge, making one of three decisions based on the project CONSTITUTION and SPECIFICATION:
+
+1. **RELAX (Loosen constraints and continue)** — Lower acceptance criteria, accept partial completion, skip non-critical items. Continue the current run.
+2. **DEFER (Suspend, move on to other tasks)** — Mark the stuck task as deferred. Pipeline skips it and continues with remaining tasks. Deferred tasks are recorded in GAP_ANALYSIS for the next iteration.
+3. **BLOCK (Truly needs human)** — Involves safety red lines, architectural decisions, etc. that cannot be auto-downgraded. Only then mark as blocker.
+
+#### Flow
+
+```
+All automated assistance exhausted
+    │
+    ▼
+Orchestrator spawns Auto-Triage agent (model=opus)
+    │
+    ▼ Returns JSON decision
+    │
+    ├── RELAX (confidence >= 0.6)
+    │     → Write relaxed constraints into stuckInfo.triageResult
+    │     → Re-spawn original phase task with relaxed constraints
+    │     → Append PIPELINE_LOG: {"event":"triage_relax"}
+    │     ├─ Success → Proceed normally ✅
+    │     └─ Fail → Mark blocker (still fails after relaxing, must wait for human)
+    │
+    ├── DEFER (confidence >= 0.6)
+    │     → Mark task as deferred (not stuck/blocked)
+    │     → Pipeline continues with remaining tasks
+    │     → Deferred task recorded as GAP_ANALYSIS input
+    │     → Append PIPELINE_LOG: {"event":"triage_defer"}
+    │     → Broadcast: Task T-xxx deferred, will be addressed in next iteration
+    │
+    └── BLOCK (or confidence < 0.6)
+          → Mark blocker, notify human (same as existing behavior)
+          → Append PIPELINE_LOG: {"event":"triage_block"}
+```
+
+#### Configuration
+
+Add to `config` in PIPELINE_STATE.json:
+
+```json
+"autoTriage": {
+  "enabled": true,
+  "triageModel": "opus",
+  "minConfidence": 0.6,
+  "allowRelax": true,
+  "allowDefer": true,
+  "maxRelaxPerRun": 3,
+  "maxDeferPerRun": 5
+}
+```
+
+- `enabled`: Whether to enable auto-triage (default true)
+- `triageModel`: Model for triage (needs strong reasoning capability)
+- `minConfidence`: Below this threshold, force BLOCK
+- `allowRelax`: Whether to allow constraint relaxation (conservative projects can set to false)
+- `allowDefer`: Whether to allow task deferral
+- `maxRelaxPerRun`: Max relaxations per run (prevents constraints from being gradually hollowed out)
+- `maxDeferPerRun`: Max deferred tasks per run (prevents too many tasks being skipped, making the run meaningless)
+
+#### PIPELINE_STATE.json Extensions
+
+Phase object's stuckInfo gains triage-related fields:
+
+```json
+{
+  "stuckInfo": {
+    "...existing fields...",
+    "triageRequested": true,
+    "triageResult": {
+      "decision": "RELAX",
+      "confidence": 0.85,
+      "reasoning": "...",
+      "relaxedConstraints": [...],
+      "executionInstructions": "..."
+    }
+  }
+}
+```
+
+For DEFER decisions, task-level new status:
+
+```json
+{
+  "implement": {
+    "status": "in_progress",
+    "deferredTasks": [
+      {
+        "taskId": "T-003",
+        "reason": "Model parameters not converging, needs more research",
+        "deferredAt": "2026-02-15T03:00:00+08:00",
+        "gapAnalysisNote": "T-003 needs re-research on parameter ranges, suggest next run Research phase supplement"
+      }
+    ]
+  }
+}
+```
+
+When all non-deferred tasks are complete, the phase is considered done (with partial marker), and the pipeline continues.
+
+#### New Log Event Types
+
+```jsonl
+{"ts":"...","event":"triage_requested","phase":"implement","task":"T-003"}
+{"ts":"...","event":"triage_relax","phase":"implement","task":"T-003","relaxedConstraints":[...],"confidence":0.85}
+{"ts":"...","event":"triage_defer","phase":"implement","task":"T-003","reason":"...","confidence":0.78}
+{"ts":"...","event":"triage_block","phase":"implement","task":"T-003","reason":"...","confidence":0.45}
+{"ts":"...","event":"relax_retry_success","phase":"implement","task":"T-003"}
+{"ts":"...","event":"relax_retry_failed","phase":"implement","task":"T-003"}
+```
+
+#### Integration with Gap Analysis
+
+When the current run has DEFER or RELAX tasks, Phase 7 Gap Analysis input automatically includes:
+
+- List of all deferred tasks and reasons
+- List of all relaxed constraints and degree of relaxation
+- Recommendation to restore original constraints and re-attempt in the next run
+
+This ensures relaxations and deferrals are not permanent — they are temporary measures for the current run, re-evaluated in the next.
+
+#### Safety Guardrails
+
+- confidence < 0.6 forces BLOCK, no automatic decisions allowed
+- Items marked as "safety red lines" or "non-negotiable" in CONSTITUTION cannot be RELAXed
+- Per-run RELAX count has an upper limit (default 3), preventing constraints from being gradually hollowed out
+- Per-run DEFER count has an upper limit (default 5), preventing the run from becoming an empty shell
+- All triage decisions are logged to PIPELINE_LOG, fully auditable
+- Review phase (Phase 6) sees all RELAX/DEFER records and can judge FAIL accordingly
+
+#### Prompt Template
+
+New template file:
+- `templates/PHASE_PROMPTS/auto_triage.md` — Triage agent prompt

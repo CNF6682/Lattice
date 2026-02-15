@@ -13,7 +13,21 @@ Perform quality review and goal achievement analysis on the entire Pipeline run 
 - `ORG/PROJECTS/<project>/pipeline/TASKS.md` (Task list)
 - `ORG/PROJECTS/<project>/pipeline/IMPL_STATUS.md` (Implementation status)
 - `ORG/PROJECTS/<project>/pipeline/TEST_REPORT.md` (Test report)
+- `ORG/PROJECTS/<project>/PIPELINE_STATE.json` (Check `deferredTasks` and `stuckInfo.triageResult` fields)
 - Code files in project repo (Spot check key modules)
+
+## ⚠️ RELAX/DEFER Review (Important)
+If PIPELINE_STATE.json contains the following records, you must perform additional review:
+
+**Deferred Tasks** (`deferredTasks` field):
+- Were the tasks deferred by Auto-Triage truly deferrable?
+- After deferring these tasks, does this run's deliverable still have practical value?
+- If deferred tasks exceed 50% of total tasks, consider judging FAIL
+
+**Relaxed Constraints** (`stuckInfo.triageResult.decision == "RELAX"`):
+- Were the relaxed constraints reasonable? Was the degree of relaxation excessive?
+- Is the output quality after relaxation still acceptable?
+- If critical constraints were relaxed, deduct points in scoring and clearly note in the report
 
 ## Review Dimensions
 

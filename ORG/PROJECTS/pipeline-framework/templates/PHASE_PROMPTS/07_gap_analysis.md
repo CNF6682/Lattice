@@ -17,6 +17,18 @@ Review answers "Is this run good enough?", you answer "How to do better next run
 - `ORG/PROJECTS/<project>/pipeline/REVIEW_REPORT.md` (Review report — scores and highlights)
 - Historical Run Archives `ORG/PROJECTS/<project>/pipeline_archive/` (If any, for cross-run comparison)
 - Code files in project repo (Spot check key modules)
+- `ORG/PROJECTS/<project>/PIPELINE_STATE.json` (Check `deferredTasks` field — tasks deferred by Auto-Triage this run)
+
+## ⚠️ Deferred Task Handling (Important)
+If PIPELINE_STATE.json contains `deferredTasks` in any phase, you must:
+1. Add a **"Deferred Task List"** section in GAP_ANALYSIS.md
+2. List each deferred task's taskId, deferral reason, and original error summary
+3. For each deferred task, provide next-run handling suggestions (re-research? change approach? split into subtasks?)
+4. In the "Improvement Suggestions List", mark deferred task recovery as **High Priority**
+
+Similarly, if this run has RELAX records (stuckInfo.triageResult.decision == "RELAX"), also:
+1. List all relaxed constraints and degree of relaxation
+2. Recommend restoring original constraints and re-verifying in the next run
 
 ## Analysis Dimensions
 

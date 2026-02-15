@@ -42,6 +42,20 @@ Constitute → Research → Specify → Plan+Tasks → Implement → Test → Re
 - Writes artifacts to `pipeline/` directory
 - Session ends automatically on completion
 
+### Consultant (Technical Advisor)
+- When a sub-agent gets stuck and the model escalation chain is exhausted, Orchestrator spawns multiple consultants in parallel
+- Each consultant uses a different model, analyzing the problem from a different perspective and providing an independent solution
+- Does not directly modify project files — only provides suggestions
+
+### Synthesizer (Solution Synthesizer)
+- After all consultants return, synthesizes the optimal executable solution
+- Synthesized solution is injected into the original phase prompt, retried with the strongest model
+
+### Triage (Auto-Triage Judge)
+- Triggered when all automated assistance (escalation chain + consult + synthesized retry) fails
+- Makes one of three decisions: RELAX (loosen constraints and continue), DEFER (suspend to next iteration), BLOCK (wait for human)
+- Prevents pipeline from stalling overnight when no human is available
+
 ---
 
 ## If You're Spawned as a Sub-Agent
@@ -92,7 +106,7 @@ ORG/PROJECTS/<project>/
 | 1 | Research | researcher | RESEARCH.md | At least 5 sourced findings |
 | 2 | Specify | designer | SPECIFICATION.md | Every requirement has acceptance criteria |
 | 3 | Plan+Tasks | architect | PLAN.md + TASKS.md | Every task has a test plan |
-| 4 | Implement | developer | Code + IMPL_STATUS.md | All tasks done |
+| 4 | Implement | developer | Code + IMPL_STATUS.md | All tasks done or deferred (via Auto-Triage) |
 | 5 | Test | developer | TEST_REPORT.md | Acceptance pass rate ≥ threshold |
 | 6 | Review | reviewer | REVIEW_REPORT.md | PASS or FAIL + rollback target |
 | 7 | Gap Analysis | researcher | GAP_ANALYSIS.md | Quantified completion + improvement suggestions |
@@ -123,3 +137,9 @@ A: Note it in your artifact. The Orchestrator or Review phase will handle rollba
 
 **Q: How often does the Pipeline trigger?**
 A: Depends on the Orchestrator's cron config. Default is every 30 minutes. Adjustable per project.
+
+**Q: What if the Pipeline gets stuck overnight with no one watching?**
+A: Pipeline has a 3-layer automated assistance mechanism: ① Model Escalation (retry with stronger models) → ② Peer Consult (parallel multi-model consultation) → ③ Auto-Triage (automated triage). The third layer has a strong model judge whether to: loosen constraints and continue (RELAX), suspend the task and move on (DEFER), or truly wait for a human (BLOCK). Only BLOCK actually stalls the pipeline. RELAX and DEFER are temporary measures — the next iteration re-evaluates them.
+
+**Q: Won't Auto-Triage loosen constraints too much?**
+A: Multiple guardrails are in place: ① confidence < 0.6 forces BLOCK ② Safety red lines in CONSTITUTION cannot be RELAXed ③ Per-run RELAX limit defaults to 3 ④ Review phase audits all RELAX/DEFER records and can judge FAIL accordingly.

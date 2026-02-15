@@ -10,6 +10,14 @@ Define project principles, technical constraints, and quality standards. This is
 - `ORG/PROJECTS/<project>/DECISIONS.md` (Existing decisions)
 - `ORG/DEPARTMENTS/<dept>/CHARTER.md` (Department responsibilities and boundaries)
 - Existing docs in project repo (e.g., README, REPORT, etc.)
+- Previous run's archived `ORG/PROJECTS/<project>/pipeline_archive/run-{N-1}/GAP_ANALYSIS.md` (if exists — contains improvement suggestions and deferred tasks)
+- Previous run's archived `ORG/PROJECTS/<project>/pipeline_archive/run-{N-1}/DEFERRED_TASKS.json` (if exists — tasks deferred by Auto-Triage in the previous run)
+
+## ⚠️ Previous Run Deferred Tasks
+If the previous run's archive contains `DEFERRED_TASKS.json`, you must:
+1. Read each deferred task's description and deferral reason
+2. In CONSTITUTION.md's "Project Goal" section or a new "Carry-Over Tasks" section, explicitly mention these tasks
+3. Ensure these tasks are not forgotten in this run — they should be re-incorporated during the Plan+Tasks phase
 
 ## Files You Need to Produce
 Write to path: `ORG/PROJECTS/<project>/pipeline/CONSTITUTION.md`
